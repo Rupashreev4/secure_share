@@ -1,0 +1,14 @@
+
+cryptography>=42
+eth-account>=0.11
+eth-utils>=3
+eth-abi>=4
+pytest>=8
+web3==8.0.0
+py-solc-x>=2.0.5
+eth-tester>=0.14.0b1
+py-evm>=0.12.1b1
+python-dotenv>=1.0
+#pip install cmake
+#winget install GnuWin32.Make
+#winget install -e --id Python.Python.3.12

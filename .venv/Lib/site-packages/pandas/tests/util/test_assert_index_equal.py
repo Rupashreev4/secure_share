@@ -1,9 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
-import pandas as pd
+from pandas import (
+    NA,
+    Categorical,
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+    NaT,
+    RangeIndex,
+)
 import pandas._testing as tm
 
 
@@ -18,8 +24,8 @@ Index levels are different
             \\('B', 4\\)\\],
            \\)"""
 
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
+    idx1 = Index([1, 2, 3])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, exact=False)
@@ -32,8 +38,8 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-    idx1 = pd.MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
-    idx2 = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
+    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
@@ -46,8 +52,8 @@ Index length are different
 \\[left\\]:  3, Index\\(\\[1, 2, 3\\], dtype='int64'\\)
 \\[right\\]: 4, Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.Index([1, 2, 3, 4])
+    idx1 = Index([1, 2, 3])
+    idx2 = Index([1, 2, 3, 4])
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
@@ -55,8 +61,8 @@ Index length are different
 
 @pytest.mark.parametrize("exact", [False, "equiv"])
 def test_index_equal_class(exact):
-    idx1 = pd.Index([0, 1, 2])
-    idx2 = pd.RangeIndex(3)
+    idx1 = Index([0, 1, 2])
+    idx2 = RangeIndex(3)
 
     tm.assert_index_equal(idx1, idx2, exact=exact)
 
@@ -68,8 +74,8 @@ Attribute "inferred_type" are different
 \\[left\\]:  integer
 \\[right\\]: floating"""
 
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.Index([1, 2, 3], dtype=np.float64)
+    idx1 = Index([1, 2, 3])
+    idx2 = Index([1, 2, 3], dtype=np.float64)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, exact=True, check_exact=check_exact)
@@ -82,16 +88,16 @@ Index classes are different
 \\[left\\]:  Index\\(\\[1, 2, 3\\], dtype='int64'\\)
 \\[right\\]: """
 
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.RangeIndex(range(3))
+    idx1 = Index([1, 2, 3])
+    idx2 = RangeIndex(range(3))
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, exact=True, check_exact=check_exact)
 
 
 def test_index_equal_values_close(check_exact):
-    idx1 = pd.Index([1, 2, 3.0])
-    idx2 = pd.Index([1, 2, 3.0000000001])
+    idx1 = Index([1, 2, 3.0])
+    idx2 = Index([1, 2, 3.0000000001])
 
     if check_exact:
         msg = """Index are different
@@ -107,8 +113,8 @@ Index values are different \\(33\\.33333 %\\)
 
 
 def test_index_equal_values_less_close(check_exact, rtol):
-    idx1 = pd.Index([1, 2, 3.0])
-    idx2 = pd.Index([1, 2, 3.0001])
+    idx1 = Index([1, 2, 3.0])
+    idx2 = Index([1, 2, 3.0001])
     kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     if check_exact or rtol < 0.5e-3:
@@ -125,8 +131,8 @@ Index values are different \\(33\\.33333 %\\)
 
 
 def test_index_equal_values_too_far(check_exact, rtol):
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.Index([1, 2, 4])
+    idx1 = Index([1, 2, 3])
+    idx2 = Index([1, 2, 4])
     kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     msg = """Index are different
@@ -141,8 +147,8 @@ Index values are different \\(33\\.33333 %\\)
 
 @pytest.mark.parametrize("check_order", [True, False])
 def test_index_equal_value_order_mismatch(check_exact, rtol, check_order):
-    idx1 = pd.Index([1, 2, 3])
-    idx2 = pd.Index([3, 2, 1])
+    idx1 = Index([1, 2, 3])
+    idx2 = Index([3, 2, 1])
 
     msg = """Index are different
 
@@ -162,8 +168,8 @@ Index values are different \\(66\\.66667 %\\)
 
 
 def test_index_equal_level_values_mismatch(check_exact, rtol):
-    idx1 = pd.MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
-    idx2 = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
+    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
     kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     msg = """MultiIndex level \\[1\\] are different
@@ -178,11 +184,11 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 
 @pytest.mark.parametrize(
     "name1,name2",
-    [(None, "x"), ("x", "x"), (np.nan, np.nan), (pd.NaT, pd.NaT), (np.nan, pd.NaT)],
+    [(None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)],
 )
 def test_index_equal_names(name1, name2):
-    idx1 = pd.Index([1, 2, 3], name=name1)
-    idx2 = pd.Index([1, 2, 3], name=name2)
+    idx1 = Index([1, 2, 3], name=name1)
+    idx2 = Index([1, 2, 3], name=name2)
 
     if name1 == name2 or name1 is name2:
         tm.assert_index_equal(idx1, idx2)
@@ -212,8 +218,8 @@ categories_dtype={dtype}\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
 ordered=False, categories_dtype={dtype}\\)"""
 
-    idx1 = pd.Index(pd.Categorical(["a", "b"]))
-    idx2 = pd.Index(pd.Categorical(["a", "b"], categories=["a", "b", "c"]))
+    idx1 = Index(Categorical(["a", "b"]))
+    idx2 = Index(Categorical(["a", "b"], categories=["a", "b", "c"]))
 
     if check_categorical:
         with pytest.raises(AssertionError, match=msg):
@@ -232,8 +238,8 @@ Index classes are different
 \\[left\\]:  RangeIndex\\(start=0, stop=10, step=1\\)
 \\[right\\]: Index\\(\\[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\\], dtype='int64'\\)"""
 
-    rcat = pd.CategoricalIndex(pd.RangeIndex(10))
-    icat = pd.CategoricalIndex(list(range(10)))
+    rcat = CategoricalIndex(RangeIndex(10))
+    icat = CategoricalIndex(list(range(10)))
 
     if check_categorical and exact:
         with pytest.raises(AssertionError, match=msg):
@@ -253,37 +259,37 @@ Attribute "inferred_type" are different
 \\[left\\]:  mixed
 \\[right\\]: datetime"""
 
-    idx1 = pd.Index([pd.NA, np.datetime64("nat", "ns")], dtype=object)
-    idx2 = pd.Index([pd.NA, pd.NaT], dtype=object)
+    idx1 = Index([NA, np.datetime64("nat")])
+    idx2 = Index([NA, NaT])
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2)
 
 
 def test_assert_index_equal_different_names_check_order_false():
     # GH#47328
-    idx1 = pd.Index([1, 3], name="a")
-    idx2 = pd.Index([3, 1], name="b")
+    idx1 = Index([1, 3], name="a")
+    idx2 = Index([3, 1], name="b")
     with pytest.raises(AssertionError, match='"names" are different'):
         tm.assert_index_equal(idx1, idx2, check_order=False, check_names=True)
 
 
 def test_assert_index_equal_mixed_dtype():
     # GH#39168
-    idx = pd.Index(["foo", "bar", 42])
+    idx = Index(["foo", "bar", 42])
     tm.assert_index_equal(idx, idx, check_order=False)
 
 
 def test_assert_index_equal_ea_dtype_order_false(any_numeric_ea_dtype):
     # GH#47207
-    idx1 = pd.Index([1, 3], dtype=any_numeric_ea_dtype)
-    idx2 = pd.Index([3, 1], dtype=any_numeric_ea_dtype)
+    idx1 = Index([1, 3], dtype=any_numeric_ea_dtype)
+    idx2 = Index([3, 1], dtype=any_numeric_ea_dtype)
     tm.assert_index_equal(idx1, idx2, check_order=False)
 
 
 def test_assert_index_equal_object_ints_order_false():
     # GH#47207
-    idx1 = pd.Index([1, 3], dtype="object")
-    idx2 = pd.Index([3, 1], dtype="object")
+    idx1 = Index([1, 3], dtype="object")
+    idx2 = Index([3, 1], dtype="object")
     tm.assert_index_equal(idx1, idx2, check_order=False)
 
 
@@ -291,8 +297,8 @@ def test_assert_index_equal_object_ints_order_false():
 @pytest.mark.parametrize("check_names", [True, False])
 def test_assert_ea_index_equal_non_matching_na(check_names, check_categorical):
     # GH#48608
-    idx1 = pd.Index([1, 2], dtype="Int64")
-    idx2 = pd.Index([1, pd.NA], dtype="Int64")
+    idx1 = Index([1, 2], dtype="Int64")
+    idx2 = Index([1, NA], dtype="Int64")
     with pytest.raises(AssertionError, match="50.0 %"):
         tm.assert_index_equal(
             idx1, idx2, check_names=check_names, check_categorical=check_categorical
@@ -302,10 +308,8 @@ def test_assert_ea_index_equal_non_matching_na(check_names, check_categorical):
 @pytest.mark.parametrize("check_categorical", [True, False])
 def test_assert_multi_index_dtype_check_categorical(check_categorical):
     # GH#52126
-    idx1 = pd.MultiIndex.from_arrays(
-        [pd.Categorical(np.array([1, 2], dtype=np.uint64))]
-    )
-    idx2 = pd.MultiIndex.from_arrays([pd.Categorical(np.array([1, 2], dtype=np.int64))])
+    idx1 = MultiIndex.from_arrays([Categorical(np.array([1, 2], dtype=np.uint64))])
+    idx2 = MultiIndex.from_arrays([Categorical(np.array([1, 2], dtype=np.int64))])
     if check_categorical:
         with pytest.raises(
             AssertionError, match=r"^MultiIndex level \[0\] are different"
@@ -313,86 +317,3 @@ def test_assert_multi_index_dtype_check_categorical(check_categorical):
             tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
-
-
-def test_assert_index_equal_categorical_incomparable_categories():
-    # GH#61935
-    left = pd.Index([1, 2, 3], name="a", dtype="category")
-    right = pd.Index([1, 2, 6], name="a", dtype="category")
-    with pytest.raises(AssertionError, match="types are not comparable"):
-        tm.assert_index_equal(left, right, check_categorical=True, exact=False)
-
-
-@pytest.mark.parametrize(
-    "box,start", [(pd.date_range, "2016-01-01"), (pd.timedelta_range, "1 Day")]
-)
-def test_assert_index_equal_check_freq_default_mismatch_warns(box, start):
-    # GH#51920
-    idx = box(start, periods=3)
-    msg = "will check the 'freq' attribute"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        tm.assert_index_equal(idx, idx._with_freq(None))
-
-
-@pytest.mark.parametrize(
-    "box,start", [(pd.date_range, "2016-01-01"), (pd.timedelta_range, "1 Day")]
-)
-def test_assert_index_equal_check_freq_default_match_no_warning(box, start):
-    # GH#51920
-    idx = box(start, periods=3)
-    with tm.assert_produces_warning(None):
-        tm.assert_index_equal(idx, idx.copy())
-
-
-@pytest.mark.parametrize(
-    "box,start", [(pd.date_range, "2016-01-01"), (pd.timedelta_range, "1 Day")]
-)
-def test_assert_index_equal_check_freq_true(box, start):
-    # GH#51920
-    idx = box(start, periods=3)
-    msg = 'Attribute "freq" are different'
-    with pytest.raises(AssertionError, match=msg):
-        tm.assert_index_equal(idx, idx._with_freq(None), check_freq=True)
-    tm.assert_index_equal(idx, idx.copy(), check_freq=True)
-
-
-@pytest.mark.parametrize(
-    "box,start", [(pd.date_range, "2016-01-01"), (pd.timedelta_range, "1 Day")]
-)
-def test_assert_index_equal_check_freq_false(box, start):
-    # GH#51920
-    idx = box(start, periods=3)
-    with tm.assert_produces_warning(None):
-        tm.assert_index_equal(idx, idx._with_freq(None), check_freq=False)
-
-
-@pytest.mark.parametrize(
-    "box,start", [(pd.date_range, "2016-01-01"), (pd.timedelta_range, "1 Day")]
-)
-def test_assert_index_equal_check_freq_check_order_false(box, start):
-    # GH#51920 sorting does not preserve freq, so the freq check is skipped
-    #  when check_order=False
-    idx = box(start, periods=3)
-    shuffled = idx.take([2, 0, 1])
-    with tm.assert_produces_warning(None):
-        tm.assert_index_equal(shuffled, idx, check_order=False)
-        tm.assert_index_equal(shuffled, idx, check_order=False, check_freq=True)
-
-
-def test_assert_index_equal_large_mixed_integer_float():
-    # GH#66699 only exact=False reaches the magnitude guard; the default
-    #  "equiv" rejects an int64/float64 pair before it
-    left = pd.Index([2**60 + 1])
-    right = pd.Index([float(2**60)])
-
-    tm.assert_index_equal(left, right, exact=False, check_exact=False, rtol=0, atol=1)
-    msg = r"Index values are different \(100\.0 %\)"
-    with pytest.raises(AssertionError, match=msg):
-        tm.assert_index_equal(
-            left, right, exact=False, check_exact=False, rtol=0, atol=0.5
-        )
-
-    same = pd.Index([2**60])
-    tm.assert_index_equal(
-        same, pd.Index([float(2**60)]), exact=False, check_exact=False, rtol=0, atol=0
-    )

@@ -1,10 +1,9 @@
-from typing import Self
+from typing import Sequence
 
 import numpy as np
 
 from pandas._typing import (
-    Scalar,
-    TakeIndexer,
+    Self,
     npt,
 )
 
@@ -18,7 +17,7 @@ class SparseIndex:
     def nbytes(self) -> int: ...
     @property
     def indices(self) -> npt.NDArray[np.int32]: ...
-    def equals(self, other: object) -> bool: ...
+    def equals(self, other) -> bool: ...
     def lookup(self, index: int) -> np.int32: ...
     def lookup_array(self, indexer: npt.NDArray[np.int32]) -> npt.NDArray[np.int32]: ...
     def to_int_index(self) -> IntIndex: ...
@@ -29,7 +28,7 @@ class SparseIndex:
 class IntIndex(SparseIndex):
     indices: npt.NDArray[np.int32]
     def __init__(
-        self, length: int, indices: TakeIndexer, check_integrity: bool = ...
+        self, length: int, indices: Sequence[int], check_integrity: bool = ...
     ) -> None: ...
 
 class BlockIndex(SparseIndex):
@@ -45,7 +44,7 @@ class BlockIndex(SparseIndex):
     def make_union(self, y: SparseIndex) -> Self: ...
 
 def make_mask_object_ndarray(
-    arr: npt.NDArray[np.object_], fill_value: Scalar
+    arr: npt.NDArray[np.object_], fill_value
 ) -> npt.NDArray[np.bool_]: ...
 def get_blocks(
     indices: npt.NDArray[np.int32],

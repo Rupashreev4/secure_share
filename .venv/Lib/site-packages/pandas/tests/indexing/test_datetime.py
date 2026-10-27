@@ -1,18 +1,24 @@
 import re
 
-import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestDatetimeIndex:
     def test_get_loc_naive_dti_aware_str_deprecated(self):
         # GH#46903
-        ts = pd.Timestamp("20130101")._value
+        ts = Timestamp("20130101")._value
         dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
-        ser = pd.Series(range(100), index=dti)
+        ser = Series(range(100), index=dti)
 
         key = "2013-01-01 00:00:00.000000050+0000"
         msg = re.escape(repr(key))
@@ -26,17 +32,15 @@ class TestDatetimeIndex:
         # GH#8260
         # support datetime64 with tz
 
-        idx = pd.Index(
-            pd.date_range("20130101", periods=3, tz="US/Eastern"), name="foo"
-        )
-        dr = pd.date_range("20130110", periods=3)
-        df = pd.DataFrame({"A": idx, "B": dr})
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+        df = DataFrame({"A": idx, "B": dr})
         df["C"] = idx
         df.iloc[1, 1] = pd.NaT
         df.iloc[1, 2] = pd.NaT
 
-        expected = pd.Series(
-            [pd.Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
+        expected = Series(
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
             index=list("ABC"),
             dtype="object",
             name=1,
@@ -50,12 +54,10 @@ class TestDatetimeIndex:
 
     def test_indexing_fast_xs(self):
         # indexing - fast_xs
-        df = pd.DataFrame(
-            {"a": pd.date_range("2014-01-01", periods=10, tz="UTC", unit="ns")}
-        )
+        df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
         result = df.iloc[5]
-        expected = pd.Series(
-            [pd.Timestamp("2014-01-06 00:00:00+0000", tz="UTC")],
+        expected = Series(
+            [Timestamp("2014-01-06 00:00:00+0000", tz="UTC")],
             index=["a"],
             name=5,
             dtype="M8[ns, UTC]",
@@ -73,12 +75,10 @@ class TestDatetimeIndex:
     def test_consistency_with_tz_aware_scalar(self):
         # xef gh-12938
         # various ways of indexing the same tz-aware scalar
-        df = pd.Series(
-            [pd.Timestamp("2016-03-30 14:35:25", tz="Europe/Brussels")]
-        ).to_frame()
+        df = Series([Timestamp("2016-03-30 14:35:25", tz="Europe/Brussels")]).to_frame()
 
         df = pd.concat([df, df]).reset_index(drop=True)
-        expected = pd.Timestamp("2016-03-30 14:35:25+0200", tz="Europe/Brussels")
+        expected = Timestamp("2016-03-30 14:35:25+0200", tz="Europe/Brussels")
 
         result = df[0][0]
         assert result == expected
@@ -104,9 +104,9 @@ class TestDatetimeIndex:
     def test_indexing_with_datetimeindex_tz(self, indexer_sl):
         # GH 12050
         # indexing on a series with a datetimeindex with tz
-        index = pd.date_range("2015-01-01", periods=2, tz="utc")
+        index = date_range("2015-01-01", periods=2, tz="utc")
 
-        ser = pd.Series(range(2), index=index, dtype="int64")
+        ser = Series(range(2), index=index, dtype="int64")
 
         # list-like indexing
 
@@ -121,7 +121,7 @@ class TestDatetimeIndex:
             # setitem
             result = ser.copy()
             indexer_sl(result)[sel] = 1
-            expected = pd.Series(1, index=index)
+            expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
@@ -132,21 +132,21 @@ class TestDatetimeIndex:
         # setitem
         result = ser.copy()
         indexer_sl(result)[index[1]] = 5
-        expected = pd.Series([0, 5], index=index)
+        expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 
     def test_nanosecond_getitem_setitem_with_tz(self):
         # GH 11679
         data = ["2016-06-28 08:30:00.123456789"]
         index = pd.DatetimeIndex(data, dtype="datetime64[ns, America/Chicago]")
-        df = pd.DataFrame({"a": [10]}, index=index)
+        df = DataFrame({"a": [10]}, index=index)
         result = df.loc[df.index[0]]
-        expected = pd.Series(10, index=["a"], name=df.index[0])
+        expected = Series(10, index=["a"], name=df.index[0])
         tm.assert_series_equal(result, expected)
 
         result = df.copy()
         result.loc[df.index[0], "a"] = -1
-        expected = pd.DataFrame(-1, index=index, columns=["a"])
+        expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_str_slice_millisecond_resolution(self, frame_or_series):
@@ -160,14 +160,14 @@ class TestDatetimeIndex:
         ]
         obj = frame_or_series(
             [1, 2, 3, 4],
-            index=[pd.Timestamp(x) for x in keys],
+            index=[Timestamp(x) for x in keys],
         )
         result = obj[keys[1] : keys[2]]
         expected = frame_or_series(
             [2, 3],
             index=[
-                pd.Timestamp(keys[1]),
-                pd.Timestamp(keys[2]),
+                Timestamp(keys[1]),
+                Timestamp(keys[2]),
             ],
         )
         tm.assert_equal(result, expected)
@@ -177,30 +177,15 @@ class TestDatetimeIndex:
         pytest.importorskip("pyarrow")
         obj = frame_or_series(
             range(5),
-            index=pd.date_range("2020", freq="D", periods=5).astype(
+            index=date_range("2020", freq="D", periods=5).astype(
                 "timestamp[us][pyarrow]"
             ),
         )
         result = obj.loc[obj.index[:-3]]
         expected = frame_or_series(
             range(2),
-            index=pd.date_range("2020", freq="D", periods=2).astype(
+            index=date_range("2020", freq="D", periods=2).astype(
                 "timestamp[us][pyarrow]"
             ),
         )
         tm.assert_equal(result, expected)
-
-
-def test_loc_setitem_integer_on_datetimeindex_no_error():
-    # GH#22040 - loc with integer key on DatetimeIndex should not
-    # raise TypeError (it enlarges the DataFrame with the new key)
-    index = pd.date_range("2018-01-01", periods=2)
-    df = pd.DataFrame({"col1": [1.0, 2.0], "col2": [3.0, 4.0]}, index=index)
-    # This previously raised TypeError: cannot insert DatetimeIndex
-    # with incompatible label
-    df.loc[0, "col1"] = 0
-    expected = pd.DataFrame(
-        {"col1": [1.0, 2.0, 0.0], "col2": [3.0, 4.0, np.nan]},
-        index=pd.Index([pd.Timestamp("2018-01-01"), pd.Timestamp("2018-01-02"), 0]),
-    )
-    tm.assert_frame_equal(df, expected)

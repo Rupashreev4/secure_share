@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import Series
 
 
 @pytest.mark.parametrize(
@@ -18,7 +18,7 @@ import pandas as pd
 )
 def test_is_unique(data, expected):
     # GH#11946 / GH#25180
-    ser = pd.Series(data)
+    ser = Series(data)
     assert ser.is_unique is expected
 
 
@@ -33,7 +33,7 @@ def test_is_unique_class_ne(capsys):
 
     with capsys.disabled():
         li = [Foo(i) for i in range(5)]
-        ser = pd.Series(li, index=list(range(5)))
+        ser = Series(li, index=list(range(5)))
 
     ser.is_unique
     captured = capsys.readouterr()

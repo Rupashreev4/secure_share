@@ -5,14 +5,21 @@ from email.parser import Parser
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestDataFrameToRecords:
     def test_to_records_timeseries(self):
-        index = pd.date_range("1/1/2000", periods=10, unit="ns")
-        df = pd.DataFrame(
+        index = date_range("1/1/2000", periods=10)
+        df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)),
             index=index,
             columns=["a", "b", "c"],
@@ -23,19 +30,10 @@ class TestDataFrameToRecords:
 
         result = df.to_records(index=False)
 
-    def test_to_records_empty_multiindex(self):
-        # GH#21064 to_records on an empty frame with a MultiIndex must not raise
-        df = pd.DataFrame({"A": [10, -10], "B": [400, 400], "C": ["bla", "bla"]})
-        grouped = pd.DataFrame(df.groupby(["B", "C"])["A"].sum())
-        empty = grouped[grouped["A"] > 1e18]  # no rows match -> empty MI frame
-        result = empty.to_records()
-        assert len(result) == 0
-        assert result.dtype.names == ("B", "C", "A")
-
     def test_to_records_dt64(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             [["one", "two", "three"], ["four", "five", "six"]],
-            index=pd.date_range("2012-01-01", "2012-01-02"),
+            index=date_range("2012-01-01", "2012-01-02"),
         )
 
         expected = df.index.values[0]
@@ -44,15 +42,13 @@ class TestDataFrameToRecords:
 
     def test_to_records_dt64tz_column(self):
         # GH#32535 dont less tz in to_records
-        df = pd.DataFrame(
-            {"A": pd.date_range("2012-01-01", "2012-01-02", tz="US/Eastern")}
-        )
+        df = DataFrame({"A": date_range("2012-01-01", "2012-01-02", tz="US/Eastern")})
 
         result = df.to_records()
 
         assert result.dtype["A"] == object
         val = result[0][1]
-        assert isinstance(val, pd.Timestamp)
+        assert isinstance(val, Timestamp)
         assert val == df.loc[0, "A"]
 
     def test_to_records_with_multindex(self):
@@ -62,7 +58,7 @@ class TestDataFrameToRecords:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         data = np.zeros((8, 4))
-        df = pd.DataFrame(data, index=index)
+        df = DataFrame(data, index=index)
         r = df.to_records(index=True)["level_0"]
         assert "bar" in r
         assert "one" not in r
@@ -78,24 +74,24 @@ class TestDataFrameToRecords:
             "Body would go here\n"
         )
 
-        frame = pd.DataFrame.from_records([headers])
+        frame = DataFrame.from_records([headers])
         all(x in frame for x in ["Type", "Subject", "From"])
 
     def test_to_records_floats(self):
-        df = pd.DataFrame(np.random.default_rng(2).random((10, 10)))
+        df = DataFrame(np.random.default_rng(2).random((10, 10)))
         df.to_records()
 
     def test_to_records_index_name(self):
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         df.index.name = "X"
         rs = df.to_records()
         assert "X" in rs.dtype.fields
 
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         rs = df.to_records()
         assert "index" in rs.dtype.fields
 
-        df.index = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "z")])
+        df.index = MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "z")])
         df.index.names = ["A", None]
         result = df.to_records()
         expected = np.rec.fromarrays(
@@ -117,17 +113,17 @@ class TestDataFrameToRecords:
     def test_to_records_with_unicode_index(self):
         # GH#13172
         # unicode_literals conflict with to_records
-        result = pd.DataFrame([{"a": "x", "b": "y"}]).set_index("a").to_records()
+        result = DataFrame([{"a": "x", "b": "y"}]).set_index("a").to_records()
         expected = np.rec.array([("x", "y")], dtype=[("a", "O"), ("b", "O")])
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_index_dtype(self):
         # GH 47263: consistent data types for Index and MultiIndex
-        df = pd.DataFrame(
+        df = DataFrame(
             {
-                1: pd.date_range("2022-01-01", periods=2, unit="ns"),
-                2: pd.date_range("2022-01-01", periods=2, unit="ns"),
-                3: pd.date_range("2022-01-01", periods=2, unit="ns"),
+                1: date_range("2022-01-01", periods=2),
+                2: date_range("2022-01-01", periods=2),
+                3: date_range("2022-01-01", periods=2),
             }
         )
 
@@ -156,7 +152,7 @@ class TestDataFrameToRecords:
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue GH#11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
-        result = pd.DataFrame(data={"accented_name_é": [1.0]}).to_records()
+        result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
         # to be specified using dictionary instead of list of tuples.
@@ -170,13 +166,13 @@ class TestDataFrameToRecords:
         # GH#8626
 
         # dict creation
-        df = pd.DataFrame({"A": list("abc")}, dtype="category")
-        expected = pd.Series(list("abc"), dtype="category", name="A")
+        df = DataFrame({"A": list("abc")}, dtype="category")
+        expected = Series(list("abc"), dtype="category", name="A")
         tm.assert_series_equal(df["A"], expected)
 
         # list-like creation
-        df = pd.DataFrame(list("abc"), dtype="category")
-        expected = pd.Series(list("abc"), dtype="category", name=0)
+        df = DataFrame(list("abc"), dtype="category")
+        expected = Series(list("abc"), dtype="category", name=0)
         tm.assert_series_equal(df[0], expected)
 
         # to record array
@@ -380,10 +376,7 @@ class TestDataFrameToRecords:
             (
                 {
                     "index": False,
-                    "column_dtypes": {
-                        "A": "int32",
-                        "B": pd.CategoricalDtype(["a", "b"]),
-                    },
+                    "column_dtypes": {"A": "int32", "B": CategoricalDtype(["a", "b"])},
                 },
                 (ValueError, "Invalid dtype category specified for column B"),
             ),
@@ -396,7 +389,7 @@ class TestDataFrameToRecords:
     )
     def test_to_records_dtype(self, kwargs, expected):
         # see GH#18146
-        df = pd.DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
+        df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         if not isinstance(expected, np.rec.recarray):
             with pytest.raises(expected[0], match=expected[1]):
@@ -410,7 +403,7 @@ class TestDataFrameToRecords:
         [
             # MultiIndex in the index.
             (
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("abc")
                 ).set_index(["a", "b"]),
                 {"column_dtypes": "float64", "index_dtypes": {0: "int32", 1: "int8"}},
@@ -425,9 +418,9 @@ class TestDataFrameToRecords:
             ),
             # MultiIndex in the columns.
             (
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                    columns=pd.MultiIndex.from_tuples(
+                    columns=MultiIndex.from_tuples(
                         [("a", "d"), ("b", "e"), ("c", "f")]
                     ),
                 ),
@@ -447,12 +440,12 @@ class TestDataFrameToRecords:
             ),
             # MultiIndex in both the columns and index.
             (
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                    columns=pd.MultiIndex.from_tuples(
+                    columns=MultiIndex.from_tuples(
                         [("a", "d"), ("b", "e"), ("c", "f")], names=list("ab")
                     ),
-                    index=pd.MultiIndex.from_tuples(
+                    index=MultiIndex.from_tuples(
                         [("d", -4), ("d", -5), ("f", -6)], names=list("cd")
                     ),
                 ),
@@ -497,7 +490,7 @@ class TestDataFrameToRecords:
             def keys(self):
                 return self.d.keys()
 
-        df = pd.DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
+        df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         dtype_mappings = {
             "column_dtypes": DictLike(A=np.int8, B=np.float32),
@@ -519,9 +512,9 @@ class TestDataFrameToRecords:
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
     def test_to_records_datetimeindex_with_tz(self, tz):
         # GH#13937
-        dr = pd.date_range("2016-01-01", periods=10, freq="s", tz=tz)
+        dr = date_range("2016-01-01", periods=10, freq="s", tz=tz)
 
-        df = pd.DataFrame({"datetime": dr}, index=dr)
+        df = DataFrame({"datetime": dr}, index=dr)
 
         expected = df.to_records()
         result = df.tz_convert("UTC").to_records()

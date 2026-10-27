@@ -1,6 +1,12 @@
 import numpy as np
+import pytest
 
 import pandas as pd
+from pandas import (
+    PeriodIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -11,9 +17,9 @@ def _permute(obj):
 class TestPeriodIndex:
     def test_union(self, sort):
         # union
-        other1 = pd.period_range("1/1/2000", freq="D", periods=5)
-        rng1 = pd.period_range("1/6/2000", freq="D", periods=5)
-        expected1 = pd.PeriodIndex(
+        other1 = period_range("1/1/2000", freq="D", periods=5)
+        rng1 = period_range("1/6/2000", freq="D", periods=5)
+        expected1 = PeriodIndex(
             [
                 "2000-01-06",
                 "2000-01-07",
@@ -29,17 +35,17 @@ class TestPeriodIndex:
             freq="D",
         )
 
-        rng2 = pd.period_range("1/1/2000", freq="D", periods=5)
-        other2 = pd.period_range("1/4/2000", freq="D", periods=5)
-        expected2 = pd.period_range("1/1/2000", freq="D", periods=8)
+        rng2 = period_range("1/1/2000", freq="D", periods=5)
+        other2 = period_range("1/4/2000", freq="D", periods=5)
+        expected2 = period_range("1/1/2000", freq="D", periods=8)
 
-        rng3 = pd.period_range("1/1/2000", freq="D", periods=5)
-        other3 = pd.PeriodIndex([], freq="D")
-        expected3 = pd.period_range("1/1/2000", freq="D", periods=5)
+        rng3 = period_range("1/1/2000", freq="D", periods=5)
+        other3 = PeriodIndex([], freq="D")
+        expected3 = period_range("1/1/2000", freq="D", periods=5)
 
-        rng4 = pd.period_range("2000-01-01 09:00", freq="h", periods=5)
-        other4 = pd.period_range("2000-01-02 09:00", freq="h", periods=5)
-        expected4 = pd.PeriodIndex(
+        rng4 = period_range("2000-01-01 09:00", freq="h", periods=5)
+        other4 = period_range("2000-01-02 09:00", freq="h", periods=5)
+        expected4 = PeriodIndex(
             [
                 "2000-01-01 09:00",
                 "2000-01-01 10:00",
@@ -55,13 +61,13 @@ class TestPeriodIndex:
             freq="h",
         )
 
-        rng5 = pd.PeriodIndex(
+        rng5 = PeriodIndex(
             ["2000-01-01 09:01", "2000-01-01 09:03", "2000-01-01 09:05"], freq="min"
         )
-        other5 = pd.PeriodIndex(
+        other5 = PeriodIndex(
             ["2000-01-01 09:01", "2000-01-01 09:05", "2000-01-01 09:08"], freq="min"
         )
-        expected5 = pd.PeriodIndex(
+        expected5 = PeriodIndex(
             [
                 "2000-01-01 09:01",
                 "2000-01-01 09:03",
@@ -71,13 +77,13 @@ class TestPeriodIndex:
             freq="min",
         )
 
-        rng6 = pd.period_range("2000-01-01", freq="M", periods=7)
-        other6 = pd.period_range("2000-04-01", freq="M", periods=7)
-        expected6 = pd.period_range("2000-01-01", freq="M", periods=10)
+        rng6 = period_range("2000-01-01", freq="M", periods=7)
+        other6 = period_range("2000-04-01", freq="M", periods=7)
+        expected6 = period_range("2000-01-01", freq="M", periods=10)
 
-        rng7 = pd.period_range("2003-01-01", freq="Y", periods=5)
-        other7 = pd.period_range("1998-01-01", freq="Y", periods=8)
-        expected7 = pd.PeriodIndex(
+        rng7 = period_range("2003-01-01", freq="Y", periods=5)
+        other7 = period_range("1998-01-01", freq="Y", periods=8)
+        expected7 = PeriodIndex(
             [
                 "2003",
                 "2004",
@@ -93,11 +99,11 @@ class TestPeriodIndex:
             freq="Y",
         )
 
-        rng8 = pd.PeriodIndex(
+        rng8 = PeriodIndex(
             ["1/3/2000", "1/2/2000", "1/1/2000", "1/5/2000", "1/4/2000"], freq="D"
         )
-        other8 = pd.period_range("1/6/2000", freq="D", periods=5)
-        expected8 = pd.PeriodIndex(
+        other8 = period_range("1/6/2000", freq="D", periods=5)
+        expected8 = PeriodIndex(
             [
                 "1/3/2000",
                 "1/2/2000",
@@ -129,7 +135,7 @@ class TestPeriodIndex:
             tm.assert_index_equal(result_union, expected)
 
     def test_union_misc(self, sort):
-        index = pd.period_range("1/1/2000", "1/20/2000", freq="D")
+        index = period_range("1/1/2000", "1/20/2000", freq="D")
 
         result = index[:-5].union(index[10:], sort=sort)
         tm.assert_index_equal(result, index)
@@ -142,14 +148,14 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index)
 
         # cast if different frequencies
-        index = pd.period_range("1/1/2000", "1/20/2000", freq="D")
-        index2 = pd.period_range("1/1/2000", "1/20/2000", freq="W-WED")
+        index = period_range("1/1/2000", "1/20/2000", freq="D")
+        index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
         result = index.union(index2, sort=sort)
         expected = index.astype(object).union(index2.astype(object), sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, sort):
-        index = pd.period_range("1/1/2000", "1/20/2000", freq="D")
+        index = period_range("1/1/2000", "1/20/2000", freq="D")
 
         result = index[:-5].intersection(index[10:], sort=sort)
         tm.assert_index_equal(result, index[10:-5])
@@ -164,30 +170,30 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index[10:-5])
 
         # cast if different frequencies
-        index = pd.period_range("1/1/2000", "1/20/2000", freq="D")
-        index2 = pd.period_range("1/1/2000", "1/20/2000", freq="W-WED")
+        index = period_range("1/1/2000", "1/20/2000", freq="D")
+        index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
 
         result = index.intersection(index2, sort=sort)
         expected = pd.Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
-        index3 = pd.period_range("1/1/2000", "1/20/2000", freq="2D")
+        index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
         result = index.intersection(index3, sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_intersection_cases(self, sort):
-        base = pd.period_range("6/1/2000", "6/30/2000", freq="D", name="idx")
+        base = period_range("6/1/2000", "6/30/2000", freq="D", name="idx")
 
         # if target has the same name, it is preserved
-        rng2 = pd.period_range("5/15/2000", "6/20/2000", freq="D", name="idx")
-        expected2 = pd.period_range("6/1/2000", "6/20/2000", freq="D", name="idx")
+        rng2 = period_range("5/15/2000", "6/20/2000", freq="D", name="idx")
+        expected2 = period_range("6/1/2000", "6/20/2000", freq="D", name="idx")
 
         # if target name is different, it will be reset
-        rng3 = pd.period_range("5/15/2000", "6/20/2000", freq="D", name="other")
-        expected3 = pd.period_range("6/1/2000", "6/20/2000", freq="D", name=None)
+        rng3 = period_range("5/15/2000", "6/20/2000", freq="D", name="other")
+        expected3 = period_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
-        rng4 = pd.period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = pd.PeriodIndex([], name="idx", freq="D")
+        rng4 = period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
+        expected4 = PeriodIndex([], name="idx", freq="D")
 
         for rng, expected in [
             (rng2, expected2),
@@ -200,28 +206,28 @@ class TestPeriodIndex:
             assert result.freq == expected.freq
 
         # non-monotonic
-        base = pd.PeriodIndex(
+        base = PeriodIndex(
             ["2011-01-05", "2011-01-04", "2011-01-02", "2011-01-03"],
             freq="D",
             name="idx",
         )
 
-        rng2 = pd.PeriodIndex(
+        rng2 = PeriodIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"],
             freq="D",
             name="idx",
         )
-        expected2 = pd.PeriodIndex(["2011-01-04", "2011-01-02"], freq="D", name="idx")
+        expected2 = PeriodIndex(["2011-01-04", "2011-01-02"], freq="D", name="idx")
 
-        rng3 = pd.PeriodIndex(
+        rng3 = PeriodIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"],
             freq="D",
             name="other",
         )
-        expected3 = pd.PeriodIndex(["2011-01-04", "2011-01-02"], freq="D", name=None)
+        expected3 = PeriodIndex(["2011-01-04", "2011-01-02"], freq="D", name=None)
 
-        rng4 = pd.period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = pd.PeriodIndex([], freq="D", name="idx")
+        rng4 = period_range("7/1/2000", "7/31/2000", freq="D", name="idx")
+        expected4 = PeriodIndex([], freq="D", name="idx")
 
         for rng, expected in [
             (rng2, expected2),
@@ -236,7 +242,7 @@ class TestPeriodIndex:
             assert result.freq == "D"
 
         # empty same freq
-        rng = pd.date_range("6/1/2000", "6/15/2000", freq="min")
+        rng = date_range("6/1/2000", "6/15/2000", freq="min")
         result = rng[0:0].intersection(rng)
         assert len(result) == 0
 
@@ -246,16 +252,16 @@ class TestPeriodIndex:
     def test_difference(self, sort):
         # diff
         period_rng = ["1/3/2000", "1/2/2000", "1/1/2000", "1/5/2000", "1/4/2000"]
-        rng1 = pd.PeriodIndex(period_rng, freq="D")
-        other1 = pd.period_range("1/6/2000", freq="D", periods=5)
+        rng1 = PeriodIndex(period_rng, freq="D")
+        other1 = period_range("1/6/2000", freq="D", periods=5)
         expected1 = rng1
 
-        rng2 = pd.PeriodIndex(period_rng, freq="D")
-        other2 = pd.period_range("1/4/2000", freq="D", periods=5)
-        expected2 = pd.PeriodIndex(["1/3/2000", "1/2/2000", "1/1/2000"], freq="D")
+        rng2 = PeriodIndex(period_rng, freq="D")
+        other2 = period_range("1/4/2000", freq="D", periods=5)
+        expected2 = PeriodIndex(["1/3/2000", "1/2/2000", "1/1/2000"], freq="D")
 
-        rng3 = pd.PeriodIndex(period_rng, freq="D")
-        other3 = pd.PeriodIndex([], freq="D")
+        rng3 = PeriodIndex(period_rng, freq="D")
+        other3 = PeriodIndex([], freq="D")
         expected3 = rng3
 
         period_rng = [
@@ -265,15 +271,15 @@ class TestPeriodIndex:
             "2000-01-01 11:00",
             "2000-01-01 13:00",
         ]
-        rng4 = pd.PeriodIndex(period_rng, freq="h")
-        other4 = pd.period_range("2000-01-02 09:00", freq="h", periods=5)
+        rng4 = PeriodIndex(period_rng, freq="h")
+        other4 = period_range("2000-01-02 09:00", freq="h", periods=5)
         expected4 = rng4
 
-        rng5 = pd.PeriodIndex(
+        rng5 = PeriodIndex(
             ["2000-01-01 09:03", "2000-01-01 09:01", "2000-01-01 09:05"], freq="min"
         )
-        other5 = pd.PeriodIndex(["2000-01-01 09:01", "2000-01-01 09:05"], freq="min")
-        expected5 = pd.PeriodIndex(["2000-01-01 09:03"], freq="min")
+        other5 = PeriodIndex(["2000-01-01 09:01", "2000-01-01 09:05"], freq="min")
+        expected5 = PeriodIndex(["2000-01-01 09:03"], freq="min")
 
         period_rng = [
             "2000-02-01",
@@ -284,14 +290,14 @@ class TestPeriodIndex:
             "2000-03-01",
             "2000-04-01",
         ]
-        rng6 = pd.PeriodIndex(period_rng, freq="M")
-        other6 = pd.period_range("2000-04-01", freq="M", periods=7)
-        expected6 = pd.PeriodIndex(["2000-02-01", "2000-01-01", "2000-03-01"], freq="M")
+        rng6 = PeriodIndex(period_rng, freq="M")
+        other6 = period_range("2000-04-01", freq="M", periods=7)
+        expected6 = PeriodIndex(["2000-02-01", "2000-01-01", "2000-03-01"], freq="M")
 
         period_rng = ["2003", "2007", "2006", "2005", "2004"]
-        rng7 = pd.PeriodIndex(period_rng, freq="Y")
-        other7 = pd.period_range("1998-01-01", freq="Y", periods=8)
-        expected7 = pd.PeriodIndex(["2007", "2006"], freq="Y")
+        rng7 = PeriodIndex(period_rng, freq="Y")
+        other7 = period_range("1998-01-01", freq="Y", periods=8)
+        expected7 = PeriodIndex(["2007", "2006"], freq="Y")
 
         for rng, other, expected in [
             (rng1, other1, expected1),
@@ -312,37 +318,38 @@ class TestPeriodIndex:
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved
 
-        index = pd.period_range("20160920", "20160925", freq="D")
+        index = period_range("20160920", "20160925", freq="D")
 
-        other = pd.period_range("20160921", "20160924", freq="D")
-        expected = pd.PeriodIndex(["20160920", "20160925"], freq="D")
+        other = period_range("20160921", "20160924", freq="D")
+        expected = PeriodIndex(["20160920", "20160925"], freq="D")
         idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
-        other = pd.period_range("20160922", "20160925", freq="D")
+        other = period_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = pd.PeriodIndex(["20160920", "20160921"], freq="D")
+        expected = PeriodIndex(["20160920", "20160921"], freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
     def test_intersection_equal_duplicates(self):
         # GH#38302
-        idx = pd.period_range("2011-01-01", periods=2)
+        idx = period_range("2011-01-01", periods=2)
         idx_dup = idx.append(idx)
         result = idx_dup.intersection(idx_dup)
         tm.assert_index_equal(result, idx)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_duplicates(self):
         # GH#36289
-        idx = pd.period_range("2011-01-01", periods=2)
+        idx = period_range("2011-01-01", periods=2)
         idx_dup = idx.append(idx)
 
-        idx2 = pd.period_range("2011-01-02", periods=2)
+        idx2 = period_range("2011-01-02", periods=2)
         idx2_dup = idx2.append(idx2)
         result = idx_dup.union(idx2_dup)
 
-        expected = pd.PeriodIndex(
+        expected = PeriodIndex(
             [
                 "2011-01-01",
                 "2011-01-01",

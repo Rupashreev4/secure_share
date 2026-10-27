@@ -9,6 +9,7 @@ def unstack(
     length: int,
     width: int,
     new_values: np.ndarray,  # reshape_t[:, :]
+    new_mask: np.ndarray,  # uint8_t[:, :]
 ) -> None: ...
 def explode(
     values: npt.NDArray[np.object_],

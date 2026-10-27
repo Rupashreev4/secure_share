@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import DataFrame
 
 
 @pytest.mark.parametrize(
@@ -16,6 +16,6 @@ import pandas as pd
 )
 def test_size(data, index, expected):
     # GH#52897
-    df = pd.DataFrame(data, index=index)
+    df = DataFrame(data, index=index)
     assert df.size == expected
     assert isinstance(df.size, int)

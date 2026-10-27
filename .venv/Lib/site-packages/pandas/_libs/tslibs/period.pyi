@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Literal
 
 import numpy as np
@@ -13,10 +14,8 @@ from pandas._typing import (
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
-INT_TO_PERIOD_DEPR_MSG: str
-INT_TO_PERIOD_SCALAR_DEPR_MSG: str
 
-class IncompatibleFrequency(TypeError): ...
+class IncompatibleFrequency(ValueError): ...
 
 def periodarr_to_dt64arr(
     periodarr: npt.NDArray[np.int64],  # const int64_t[:]
@@ -33,30 +32,21 @@ def get_period_field_arr(
     arr: npt.NDArray[np.int64],  # const int64_t[:]
     freq: int,
 ) -> npt.NDArray[np.int64]: ...
-def period_ordinals_from_fields(
-    years: npt.NDArray[np.int64],
-    months: npt.NDArray[np.int64],
-    days: npt.NDArray[np.int64],
-    hours: npt.NDArray[np.int64],
-    minutes: npt.NDArray[np.int64],
-    seconds: npt.NDArray[np.int64],
-    freq: int,
-) -> npt.NDArray[np.int64]: ...
-def from_calendar_ordinals(
+def from_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
-    dtype: PeriodDtypeBase,
+    freq: timedelta | BaseOffset | str,
 ) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
     values: npt.NDArray[np.object_],
-    dtype: PeriodDtypeBase,
+    freq: Frequency | int,
 ) -> npt.NDArray[np.int64]: ...
-def extract_period_unit(
+def extract_freq(
     values: npt.NDArray[np.object_],
-) -> PeriodDtypeBase: ...
+) -> BaseOffset: ...
 def period_array_strftime(
     values: npt.NDArray[np.int64],
     dtype_code: int,
-    na_rep: str | float,
+    na_rep,
     date_format: str | None,
 ) -> npt.NDArray[np.object_]: ...
 
@@ -73,7 +63,7 @@ class PeriodMixin:
     def end_time(self) -> Timestamp: ...
     @property
     def start_time(self) -> Timestamp: ...
-    def _require_matching_unit(self, other_unit: str, base: bool = ...) -> None: ...
+    def _require_matching_freq(self, other: BaseOffset, base: bool = ...) -> None: ...
 
 class Period(PeriodMixin):
     ordinal: int  # int64_t
@@ -83,7 +73,7 @@ class Period(PeriodMixin):
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
         cls,
-        value: object = ...,
+        value=...,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
@@ -95,12 +85,11 @@ class Period(PeriodMixin):
         second: int | None = ...,
     ) -> Period | NaTType: ...
     @classmethod
-    def _maybe_convert_freq(cls, freq: object) -> BaseOffset: ...
+    def _maybe_convert_freq(cls, freq) -> BaseOffset: ...
     @classmethod
-    def _from_ordinal(cls, ordinal: int, dtype: PeriodDtypeBase) -> Period: ...
+    def _from_ordinal(cls, ordinal: int, freq: BaseOffset) -> Period: ...
     @classmethod
     def now(cls, freq: Frequency) -> Period: ...
-    def __format__(self, fmt: str) -> str: ...
     def strftime(self, fmt: str | None) -> str: ...
     def to_timestamp(
         self,
@@ -142,5 +131,5 @@ class Period(PeriodMixin):
     def month(self) -> int: ...
     @property
     def year(self) -> int: ...
-    def __sub__(self, other: object, /) -> Period | BaseOffset: ...
-    def __add__(self, other: object, /) -> Period: ...
+    def __sub__(self, other) -> Period | BaseOffset: ...
+    def __add__(self, other) -> Period: ...

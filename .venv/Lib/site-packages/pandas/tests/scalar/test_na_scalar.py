@@ -14,7 +14,6 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core import roperator
 
 
 def test_singleton():
@@ -63,22 +62,13 @@ def test_arithmetic_ops(all_arithmetic_functions, other):
 
     if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, (str, bytes)):
         pytest.skip(reason=f"{op.__name__} with NA and {other} not defined.")
-    if op.__name__ == "rpow":
-        # avoid special case
-        other += 1
-    assert op(NA, other) is NA
-
-
-@pytest.mark.parametrize("op", [divmod, roperator.rdivmod])
-@pytest.mark.parametrize(
-    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan], ids=repr
-)
-def test_divmod_ops(op, other):
-    # GH#66493 divmod is not part of the all_arithmetic_functions fixture,
-    # so it needs its own test.
-    div, mod = op(NA, other)
-    assert div is NA
-    assert mod is NA
+    if op.__name__ in ("divmod", "rdivmod"):
+        assert op(NA, other) is (NA, NA)
+    else:
+        if op.__name__ == "rpow":
+            # avoid special case
+            other += 1
+        assert op(NA, other) is NA
 
 
 @pytest.mark.parametrize(
@@ -177,12 +167,6 @@ def test_logical_and():
     assert False & NA is False
     assert NA & NA is NA
 
-    # GH#58427
-    assert NA & np.bool_(True) is NA
-    assert np.bool_(True) & NA is NA
-    assert NA & np.bool_(False) is False
-    assert np.bool_(False) & NA is False
-
     msg = "unsupported operand type"
     with pytest.raises(TypeError, match=msg):
         NA & 5
@@ -195,12 +179,6 @@ def test_logical_or():
     assert False | NA is NA
     assert NA | NA is NA
 
-    # GH#58427
-    assert NA | np.bool_(True) is True
-    assert np.bool_(True) | NA is True
-    assert NA | np.bool_(False) is NA
-    assert np.bool_(False) | NA is NA
-
     msg = "unsupported operand type"
     with pytest.raises(TypeError, match=msg):
         NA | 5
@@ -212,12 +190,6 @@ def test_logical_xor():
     assert NA ^ False is NA
     assert False ^ NA is NA
     assert NA ^ NA is NA
-
-    # GH#58427
-    assert NA ^ np.bool_(True) is NA
-    assert np.bool_(True) ^ NA is NA
-    assert NA ^ np.bool_(False) is NA
-    assert np.bool_(False) ^ NA is NA
 
     msg = "unsupported operand type"
     with pytest.raises(TypeError, match=msg):
@@ -327,8 +299,8 @@ def test_pickle_roundtrip():
     assert result is NA
 
 
-def test_pickle_roundtrip_pandas(temp_file):
-    result = tm.round_trip_pickle(NA, temp_file)
+def test_pickle_roundtrip_pandas():
+    result = tm.round_trip_pickle(NA)
     assert result is NA
 
 
@@ -336,9 +308,9 @@ def test_pickle_roundtrip_pandas(temp_file):
     "values, dtype", [([1, 2, NA], "Int64"), (["A", "B", NA], "string")]
 )
 @pytest.mark.parametrize("as_frame", [True, False])
-def test_pickle_roundtrip_containers(as_frame, values, dtype, temp_file):
+def test_pickle_roundtrip_containers(as_frame, values, dtype):
     s = pd.Series(pd.array(values, dtype=dtype))
     if as_frame:
         s = s.to_frame(name="A")
-    result = tm.round_trip_pickle(s, temp_file)
+    result = tm.round_trip_pickle(s)
     tm.assert_equal(result, s)

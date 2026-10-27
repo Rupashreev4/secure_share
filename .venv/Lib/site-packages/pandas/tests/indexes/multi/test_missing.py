@@ -2,19 +2,20 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import MultiIndex
 import pandas._testing as tm
 
 
 def test_fillna(idx):
     # GH 11343
-    msg = "fillna is not defined for MultiIndex"
+    msg = "isna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.fillna(idx[0])
 
 
 def test_dropna():
     # GH 6194
-    idx = pd.MultiIndex.from_arrays(
+    idx = MultiIndex.from_arrays(
         [
             [1, np.nan, 3, np.nan, 5],
             [1, 2, np.nan, np.nan, 5],
@@ -22,11 +23,11 @@ def test_dropna():
         ]
     )
 
-    exp = pd.MultiIndex.from_arrays([[1, 5], [1, 5], ["a", "e"]])
+    exp = MultiIndex.from_arrays([[1, 5], [1, 5], ["a", "e"]])
     tm.assert_index_equal(idx.dropna(), exp)
     tm.assert_index_equal(idx.dropna(how="any"), exp)
 
-    exp = pd.MultiIndex.from_arrays(
+    exp = MultiIndex.from_arrays(
         [[1, np.nan, 3, 5], [1, 2, np.nan, 5], ["a", "b", "c", "e"]]
     )
     tm.assert_index_equal(idx.dropna(how="all"), exp)
@@ -38,15 +39,15 @@ def test_dropna():
     # GH26408
     # test if missing values are dropped for multiindex constructed
     # from codes and values
-    idx = pd.MultiIndex(
+    idx = MultiIndex(
         levels=[[np.nan, None, pd.NaT, "128", 2], [np.nan, None, pd.NaT, "128", 2]],
         codes=[[0, -1, 1, 2, 3, 4], [0, -1, 3, 3, 3, 4]],
     )
-    expected = pd.MultiIndex.from_arrays([["128", 2], ["128", 2]])
+    expected = MultiIndex.from_arrays([["128", 2], ["128", 2]])
     tm.assert_index_equal(idx.dropna(), expected)
     tm.assert_index_equal(idx.dropna(how="any"), expected)
 
-    expected = pd.MultiIndex.from_arrays(
+    expected = MultiIndex.from_arrays(
         [[np.nan, np.nan, "128", 2], ["128", "128", "128", 2]]
     )
     tm.assert_index_equal(idx.dropna(how="all"), expected)
@@ -85,10 +86,8 @@ def test_hasnans_isnans(idx):
 
 def test_nan_stays_float():
     # GH 7031
-    idx0 = pd.MultiIndex(
-        levels=[["A", "B"], []], codes=[[1, 0], [-1, -1]], names=[0, 1]
-    )
-    idx1 = pd.MultiIndex(levels=[["C"], ["D"]], codes=[[0], [0]], names=[0, 1])
+    idx0 = MultiIndex(levels=[["A", "B"], []], codes=[[1, 0], [-1, -1]], names=[0, 1])
+    idx1 = MultiIndex(levels=[["C"], ["D"]], codes=[[0], [0]], names=[0, 1])
     idxm = idx0.join(idx1, how="outer")
     assert pd.isna(idx0.get_level_values(1)).all()
     # the following failed in 0.14.1
@@ -103,7 +102,7 @@ def test_nan_stays_float():
 
 
 def test_tuples_have_na():
-    index = pd.MultiIndex(
+    index = MultiIndex(
         levels=[[1, 0], [0, 1, 2, 3]],
         codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
     )

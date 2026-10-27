@@ -2,14 +2,18 @@
 # Other cases can be shared in tests.arithmetic.test_timedelta64
 import numpy as np
 
-import pandas as pd
+from pandas import (
+    NaT,
+    Timedelta,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
 class TestTimedeltaIndexArithmetic:
     def test_arithmetic_zero_freq(self):
         # GH#51575 don't get a .freq with freq.n = 0
-        tdi = pd.timedelta_range(0, periods=100, freq="ns")
+        tdi = timedelta_range(0, periods=100, freq="ns")
         result = tdi / 2
         assert result.freq is None
         expected = tdi[:50].repeat(2)
@@ -28,9 +32,9 @@ class TestTimedeltaIndexArithmetic:
     def test_tdi_division(self, index_or_series):
         # doc example
 
-        scalar = pd.Timedelta(days=31)
+        scalar = Timedelta(days=31)
         td = index_or_series(
-            [scalar, scalar, scalar + pd.Timedelta(minutes=5, seconds=3), pd.NaT],
+            [scalar, scalar, scalar + Timedelta(minutes=5, seconds=3), NaT],
             dtype="m8[ns]",
         )
 

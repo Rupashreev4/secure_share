@@ -2,7 +2,17 @@ import re
 
 import pytest
 
-import pandas as pd
+from pandas.compat.pyarrow import (
+    pa_version_under11p0,
+    pa_version_under13p0,
+)
+
+from pandas import (
+    ArrowDtype,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
@@ -10,9 +20,9 @@ pc = pytest.importorskip("pyarrow.compute")
 
 
 def test_struct_accessor_dtypes():
-    ser = pd.Series(
+    ser = Series(
         [],
-        dtype=pd.ArrowDtype(
+        dtype=ArrowDtype(
             pa.struct(
                 [
                     ("int_col", pa.int64()),
@@ -31,11 +41,11 @@ def test_struct_accessor_dtypes():
         ),
     )
     actual = ser.struct.dtypes
-    expected = pd.Series(
+    expected = Series(
         [
-            pd.ArrowDtype(pa.int64()),
-            pd.ArrowDtype(pa.string()),
-            pd.ArrowDtype(
+            ArrowDtype(pa.int64()),
+            ArrowDtype(pa.string()),
+            ArrowDtype(
                 pa.struct(
                     [
                         ("int_col", pa.int64()),
@@ -44,20 +54,21 @@ def test_struct_accessor_dtypes():
                 )
             ),
         ],
-        index=pd.Index(["int_col", "string_col", "struct_col"]),
+        index=Index(["int_col", "string_col", "struct_col"]),
     )
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field():
-    index = pd.Index([-100, 42, 123])
-    ser = pd.Series(
+    index = Index([-100, 42, 123])
+    ser = Series(
         [
             {"rice": 1.0, "maize": -1, "wheat": "a"},
             {"rice": 2.0, "maize": 0, "wheat": "b"},
             {"rice": 3.0, "maize": 1, "wheat": "c"},
         ],
-        dtype=pd.ArrowDtype(
+        dtype=ArrowDtype(
             pa.struct(
                 [
                     ("rice", pa.float64()),
@@ -69,18 +80,18 @@ def test_struct_accessor_field():
         index=index,
     )
     by_name = ser.struct.field("maize")
-    by_name_expected = pd.Series(
+    by_name_expected = Series(
         [-1, 0, 1],
-        dtype=pd.ArrowDtype(pa.int64()),
+        dtype=ArrowDtype(pa.int64()),
         index=index,
         name="maize",
     )
     tm.assert_series_equal(by_name, by_name_expected)
 
     by_index = ser.struct.field(2)
-    by_index_expected = pd.Series(
+    by_index_expected = Series(
         ["a", "b", "c"],
-        dtype=pd.ArrowDtype(pa.string()),
+        dtype=ArrowDtype(pa.string()),
         index=index,
         name="wheat",
     )
@@ -88,21 +99,22 @@ def test_struct_accessor_field():
 
 
 def test_struct_accessor_field_with_invalid_name_or_index():
-    ser = pd.Series([], dtype=pd.ArrowDtype(pa.struct([("field", pa.int64())])))
+    ser = Series([], dtype=ArrowDtype(pa.struct([("field", pa.int64())])))
 
     with pytest.raises(ValueError, match="name_or_index must be an int, str,"):
         ser.struct.field(1.1)
 
 
+@pytest.mark.skipif(pa_version_under11p0, reason="pyarrow>=11.0.0 required")
 def test_struct_accessor_explode():
-    index = pd.Index([-100, 42, 123])
-    ser = pd.Series(
+    index = Index([-100, 42, 123])
+    ser = Series(
         [
             {"painted": 1, "snapping": {"sea": "green"}},
             {"painted": 2, "snapping": {"sea": "leatherback"}},
             {"painted": 3, "snapping": {"sea": "hawksbill"}},
         ],
-        dtype=pd.ArrowDtype(
+        dtype=ArrowDtype(
             pa.struct(
                 [
                     ("painted", pa.int64()),
@@ -113,15 +125,13 @@ def test_struct_accessor_explode():
         index=index,
     )
     actual = ser.struct.explode()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
-            "painted": pd.Series(
-                [1, 2, 3], index=index, dtype=pd.ArrowDtype(pa.int64())
-            ),
-            "snapping": pd.Series(
+            "painted": Series([1, 2, 3], index=index, dtype=ArrowDtype(pa.int64())),
+            "snapping": Series(
                 [{"sea": "green"}, {"sea": "leatherback"}, {"sea": "hawksbill"}],
                 index=index,
-                dtype=pd.ArrowDtype(pa.struct([("sea", pa.string())])),
+                dtype=ArrowDtype(pa.struct([("sea", pa.string())])),
             ),
         },
     )
@@ -131,9 +141,9 @@ def test_struct_accessor_explode():
 @pytest.mark.parametrize(
     "invalid",
     [
-        pytest.param(pd.Series([1, 2, 3], dtype="int64"), id="int64"),
+        pytest.param(Series([1, 2, 3], dtype="int64"), id="int64"),
         pytest.param(
-            pd.Series(["a", "b", "c"], dtype="string[pyarrow]"), id="string-pyarrow"
+            Series(["a", "b", "c"], dtype="string[pyarrow]"), id="string-pyarrow"
         ),
     ],
 )
@@ -159,6 +169,7 @@ def test_struct_accessor_api_for_invalid(invalid):
         ([b"string_col"], "string_col"),
     ],
 )
+@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field_expanded(indices, name):
     arrow_type = pa.struct(
         [
@@ -178,7 +189,7 @@ def test_struct_accessor_field_expanded(indices, name):
     )
 
     data = pa.array([], type=arrow_type)
-    ser = pd.Series(data, dtype=pd.ArrowDtype(arrow_type))
+    ser = Series(data, dtype=ArrowDtype(arrow_type))
     expected = pc.struct_field(data, indices)
     result = ser.struct.field(indices)
     tm.assert_equal(result.array._pa_array.combine_chunks(), expected)

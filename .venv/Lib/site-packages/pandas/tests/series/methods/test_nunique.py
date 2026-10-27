@@ -1,11 +1,14 @@
 import numpy as np
 
-import pandas as pd
+from pandas import (
+    Categorical,
+    Series,
+)
 
 
 def test_nunique():
     # basics.rst doc example
-    series = pd.Series(np.random.default_rng(2).standard_normal(500))
+    series = Series(np.random.default_rng(2).standard_normal(500))
     series[20:500] = np.nan
     series[10:20] = 5000
     result = series.nunique()
@@ -14,8 +17,8 @@ def test_nunique():
 
 def test_nunique_categorical():
     # GH#18051
-    ser = pd.Series(pd.Categorical([]))
+    ser = Series(Categorical([]))
     assert ser.nunique() == 0
 
-    ser = pd.Series(pd.Categorical([np.nan]))
+    ser = Series(Categorical([np.nan]))
     assert ser.nunique() == 0

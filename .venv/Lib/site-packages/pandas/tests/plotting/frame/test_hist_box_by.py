@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
@@ -17,7 +17,7 @@ pytest.importorskip("matplotlib")
 
 @pytest.fixture
 def hist_df():
-    df = pd.DataFrame(
+    df = DataFrame(
         np.random.default_rng(2).standard_normal((30, 2)), columns=["A", "B"]
     )
     df["C"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
@@ -146,8 +146,7 @@ class TestHistWithBy:
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        msg = "the figure containing the passed axes is being cleared"
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 hist_df.plot.hist, column=column, by=by, layout=layout
             )

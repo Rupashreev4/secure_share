@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    DataFrame,
+    Series,
+    array as pd_array,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -10,7 +15,7 @@ def df():
     """
     base dataframe for testing
     """
-    return pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    return DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
 
 def test_case_when_caselist_is_not_a_list(df):
@@ -57,8 +62,8 @@ def test_case_when_single_condition(df):
     """
     Test output on a single condition.
     """
-    result = pd.Series([np.nan, np.nan, np.nan]).case_when([(df.a.eq(1), 1)])
-    expected = pd.Series([1, np.nan, np.nan])
+    result = Series([np.nan, np.nan, np.nan]).case_when([(df.a.eq(1), 1)])
+    expected = Series([1, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -66,10 +71,10 @@ def test_case_when_multiple_conditions(df):
     """
     Test output when booleans are derived from a computation
     """
-    result = pd.Series([np.nan, np.nan, np.nan]).case_when(
-        [(df.a.eq(1), 1), (pd.Series([False, True, False]), 2)]
+    result = Series([np.nan, np.nan, np.nan]).case_when(
+        [(df.a.eq(1), 1), (Series([False, True, False]), 2)]
     )
-    expected = pd.Series([1, 2, np.nan])
+    expected = Series([1, 2, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -77,10 +82,10 @@ def test_case_when_multiple_conditions_replacement_list(df):
     """
     Test output when replacement is a list
     """
-    result = pd.Series([np.nan, np.nan, np.nan]).case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), [1, 2, 3])]
     )
-    expected = pd.Series([1, 2, np.nan])
+    expected = Series([1, 2, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -88,13 +93,13 @@ def test_case_when_multiple_conditions_replacement_extension_dtype(df):
     """
     Test output when replacement has an extension dtype
     """
-    result = pd.Series([np.nan, np.nan, np.nan]).case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [
             ([True, False, False], 1),
-            (df["a"].gt(1) & df["b"].eq(5), pd.array([1, 2, 3], dtype="Int64")),
+            (df["a"].gt(1) & df["b"].eq(5), pd_array([1, 2, 3], dtype="Int64")),
         ],
     )
-    expected = pd.Series([1, 2, np.nan], dtype="Float64")
+    expected = Series([1, 2, np.nan], dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -102,13 +107,13 @@ def test_case_when_multiple_conditions_replacement_series(df):
     """
     Test output when replacement is a Series
     """
-    result = pd.Series([np.nan, np.nan, np.nan]).case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [
             (np.array([True, False, False]), 1),
-            (df["a"].gt(1) & df["b"].eq(5), pd.Series([1, 2, 3])),
+            (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
         ],
     )
-    expected = pd.Series([1, 2, np.nan])
+    expected = Series([1, 2, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -117,11 +122,11 @@ def test_case_when_non_range_index():
     Test output if index is not RangeIndex
     """
     rng = np.random.default_rng(seed=123)
-    dates = pd.date_range("1/1/2000", periods=8)
-    df = pd.DataFrame(
+    dates = date_range("1/1/2000", periods=8)
+    df = DataFrame(
         rng.standard_normal(size=(8, 4)), index=dates, columns=["A", "B", "C", "D"]
     )
-    result = pd.Series(5, index=df.index, name="A").case_when([(df.A.gt(0), df.B)])
+    result = Series(5, index=df.index, name="A").case_when([(df.A.gt(0), df.B)])
     expected = df.A.mask(df.A.gt(0), df.B).where(df.A.gt(0), 5)
     tm.assert_series_equal(result, expected)
 
@@ -132,7 +137,7 @@ def test_case_when_callable():
     """
     # https://numpy.org/doc/stable/reference/generated/numpy.piecewise.html
     x = np.linspace(-2.5, 2.5, 6)
-    ser = pd.Series(x)
+    ser = Series(x)
     result = ser.case_when(
         caselist=[
             (lambda df: df < 0, lambda df: -df),
@@ -140,69 +145,4 @@ def test_case_when_callable():
         ]
     )
     expected = np.piecewise(x, [x < 0, x >= 0], [lambda x: -x, lambda x: x])
-    tm.assert_series_equal(result, pd.Series(expected))
-
-
-def test_case_when_expression_condition(df):
-    # GH 64070
-    result = df.assign(
-        out=pd.col("a").case_when([(pd.col("a") > 1, 10), (pd.col("a") <= 1, 5)])
-    )
-    expected = df.assign(out=pd.Series([5, 10, 10], index=df.index))
-    tm.assert_frame_equal(result, expected)
-
-
-def test_case_when_expression_replacement(df):
-    # GH 64070
-    result = df.assign(
-        out=pd.col("a").case_when(
-            [(df["a"] > 1, pd.col("a") + 100), (df["a"] <= 1, pd.col("a") + 1)]
-        )
-    )
-    expected = df.assign(out=pd.Series([2, 102, 103], index=df.index))
-    tm.assert_frame_equal(result, expected)
-
-
-def test_case_when_expression_in_assign():
-    # GH 64070
-    df = pd.DataFrame({"age": [65, 30], "name": ["Jason", "Anna"]})
-    result = df.assign(
-        elderly=pd.col("age").case_when([(pd.col("name").eq("Jason"), 1)])
-    )
-    expected = df.assign(elderly=pd.Series([1, 30], index=df.index))
-    tm.assert_frame_equal(result, expected)
-
-
-def test_case_when_expression_mixed_args_in_assign():
-    # GH 64070
-    df = pd.DataFrame({"name": ["Jason", "Amy", "Bob"], "age": [42, 10, 5]})
-    caselist = [
-        (lambda s: s < 10, pd.col("age") + 100),
-        (pd.col("name").eq("Jason"), 1),
-    ]
-    result = df.assign(elderly=pd.col("age").case_when(caselist=caselist))
-    expected = df.assign(elderly=pd.Series([1, 10, 105], index=df.index))
-    tm.assert_frame_equal(result, expected)
-
-
-def test_case_when_expression_math_condition_in_assign():
-    # GH 64070
-    df = pd.DataFrame({"a": [-1, 1, 2], "b": [0, -2, 1]})
-    caselist = [(pd.col("a") + pd.col("b") > 0, 99)]
-    result = df.assign(flag=pd.col("a").case_when(caselist=caselist))
-    expected = df.assign(flag=pd.Series([-1, 1, 99], index=df.index))
-    tm.assert_frame_equal(result, expected)
-
-
-def test_case_when_expression_missing_values_in_assign():
-    # GH 64070
-    df = pd.DataFrame({"age": [np.nan, 5.0, 20.0]})
-    caselist = [
-        (pd.col("age").isna(), "missing"),
-        (pd.col("age") > 10, "adult"),
-    ]
-    result = df.assign(group=pd.col("age").case_when(caselist=caselist))
-    expected = df.assign(
-        group=pd.Series(["missing", 5.0, "adult"], index=df.index, dtype=object)
-    )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result, Series(expected))

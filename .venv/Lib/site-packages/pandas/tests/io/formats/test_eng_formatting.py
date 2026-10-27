@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
-import pandas as pd
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    reset_option,
+    set_eng_float_format,
+)
 
 from pandas.io.formats.format import EngFormatter
 
@@ -12,7 +13,7 @@ from pandas.io.formats.format import EngFormatter
 @pytest.fixture(autouse=True)
 def reset_float_format():
     yield
-    pd.reset_option("display.float_format")
+    reset_option("display.float_format")
 
 
 class TestEngFormatter:
@@ -20,23 +21,19 @@ class TestEngFormatter:
         df = float_frame
         df.loc[5] = 0
 
-        msg = "set_eng_float_format is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            pd.set_eng_float_format()
+        set_eng_float_format()
         repr(df)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            pd.set_eng_float_format(use_eng_prefix=True)
+        set_eng_float_format(use_eng_prefix=True)
         repr(df)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            pd.set_eng_float_format(accuracy=0)
+        set_eng_float_format(accuracy=0)
         repr(df)
 
     def test_eng_float_formatter(self):
-        df = pd.DataFrame({"A": [1.41, 141.0, 14100, 1410000.0]})
+        df = DataFrame({"A": [1.41, 141.0, 14100, 1410000.0]})
 
-        pd.set_option("display.float_format", EngFormatter(accuracy=3))
+        set_eng_float_format()
         result = df.to_string()
         expected = (
             "             A\n"
@@ -47,15 +44,12 @@ class TestEngFormatter:
         )
         assert result == expected
 
-        pd.set_option(
-            "display.float_format",
-            EngFormatter(accuracy=3, use_eng_prefix=True),
-        )
+        set_eng_float_format(use_eng_prefix=True)
         result = df.to_string()
         expected = "         A\n0    1.410\n1  141.000\n2  14.100k\n3   1.410M"
         assert result == expected
 
-        pd.set_option("display.float_format", EngFormatter(accuracy=0))
+        set_eng_float_format(accuracy=0)
         result = df.to_string()
         expected = "         A\n0    1E+00\n1  141E+00\n2   14E+03\n3    1E+06"
         assert result == expected
@@ -240,7 +234,7 @@ class TestEngFormatter:
         result = formatter(np.nan)
         assert result == "NaN"
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": [1.5, 10.3, 20.5],
                 "b": [50.3, 60.67, 70.12],
@@ -248,7 +242,7 @@ class TestEngFormatter:
             }
         )
         pt = df.pivot_table(values="a", index="b", columns="c")
-        pd.set_option("display.float_format", EngFormatter(accuracy=1))
+        set_eng_float_format(accuracy=1)
         result = pt.to_string()
         assert "NaN" in result
 

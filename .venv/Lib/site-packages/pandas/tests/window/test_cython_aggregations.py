@@ -6,7 +6,7 @@ import pytest
 
 import pandas._libs.window.aggregations as window_aggregations
 
-import pandas as pd
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -30,9 +30,6 @@ def _get_rolling_aggregations():
             ("roll_median_c", window_aggregations.roll_median_c),
             ("roll_max", window_aggregations.roll_max),
             ("roll_min", window_aggregations.roll_min),
-            ("roll_first", window_aggregations.roll_first),
-            ("roll_last", window_aggregations.roll_last),
-            ("roll_nunique", window_aggregations.roll_nunique),
         ]
         + [
             (
@@ -62,7 +59,7 @@ def _get_rolling_aggregations():
         ]
     )
     # unzip to a list of 2 tuples, names and functions
-    unzipped = list(zip(*named_roll_aggs, strict=True))
+    unzipped = list(zip(*named_roll_aggs))
     return {"ids": unzipped[0], "params": unzipped[1]}
 
 
@@ -84,8 +81,8 @@ def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
     end = np.arange(width, size, step, dtype=np.int64)
     start = end - width
     selarr = np.array(selection, dtype=np.int32)
-    result = pd.Series(rolling_aggregation(values, start[selarr], end[selarr], minp))
-    expected = pd.Series(rolling_aggregation(values, start, end, minp)[selarr])
+    result = Series(rolling_aggregation(values, start[selarr], end[selarr], minp))
+    expected = Series(rolling_aggregation(values, start, end, minp)[selarr])
     tm.assert_equal(expected, result)
 
 
@@ -103,11 +100,11 @@ def test_rolling_aggregation_with_unused_elements(rolling_aggregation):
         [j for i in range(len(start)) for j in range(start[i], end[i])],
         dtype=np.int32,
     )
-    result = pd.Series(rolling_aggregation(values, start, end, minp))
+    result = Series(rolling_aggregation(values, start, end, minp))
     compact_values = np.array(values[loc], dtype=np.float64)
     compact_start = np.arange(0, len(start) * width, width, dtype=np.int64)
     compact_end = compact_start + width
-    expected = pd.Series(
+    expected = Series(
         rolling_aggregation(compact_values, compact_start, compact_end, minp)
     )
     assert np.isfinite(expected.values).all(), "Not all expected values are finite"

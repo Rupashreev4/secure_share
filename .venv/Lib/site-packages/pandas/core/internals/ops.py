@@ -8,10 +8,7 @@ from typing import (
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Iterator,
-    )
+    from collections.abc import Iterator
 
     from pandas._libs.internals import BlockPlacement
     from pandas._typing import ArrayLike
@@ -58,9 +55,7 @@ def _iter_block_pairs(
 
 
 def operate_blockwise(
-    left: BlockManager,
-    right: BlockManager,
-    array_op: Callable[[ArrayLike, ArrayLike], ArrayLike],
+    left: BlockManager, right: BlockManager, array_op
 ) -> BlockManager:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
@@ -74,7 +69,7 @@ def operate_blockwise(
             and hasattr(res_values, "reshape")
             and not is_1d_only_ea_dtype(res_values.dtype)
         ):
-            res_values = res_values.reshape(1, -1)  # pyright: ignore[reportAttributeAccessIssue]
+            res_values = res_values.reshape(1, -1)
         nbs = rblk._split_op_result(res_values)
 
         # Assertions are disabled for performance, but should hold:
@@ -94,12 +89,11 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    # TODO shallow copy axes?
     new_mgr = type(right)(tuple(res_blks), axes=right.axes, verify_integrity=False)
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: list[Block], locs: BlockPlacement) -> None:
+def _reset_block_mgr_locs(nbs: list[Block], locs) -> None:
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """
@@ -149,11 +143,7 @@ def _get_same_shape_values(
     return lvals, rvals
 
 
-def blockwise_all(
-    left: BlockManager,
-    right: BlockManager,
-    op: Callable[[ArrayLike, ArrayLike], bool],
-) -> bool:
+def blockwise_all(left: BlockManager, right: BlockManager, op) -> bool:
     """
     Blockwise `all` reduction.
     """

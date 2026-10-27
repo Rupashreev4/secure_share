@@ -1,12 +1,27 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import Series
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("f", [lambda v: pd.Series(v).sum(), np.nansum])
-def test_expanding_apply_consistency_sum_nans(all_data, min_periods, f):
+def no_nans(x):
+    return x.notna().all().all()
+
+
+def all_na(x):
+    return x.isnull().all().all()
+
+
+@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum, np.sum])
+def test_expanding_apply_consistency_sum_nans(request, all_data, min_periods, f):
+    if f is np.sum:
+        if not no_nans(all_data) and not (
+            all_na(all_data) and not all_data.empty and min_periods > 0
+        ):
+            request.applymarker(
+                pytest.mark.xfail(reason="np.sum has different behavior with NaNs")
+            )
     expanding_f_result = all_data.expanding(min_periods=min_periods).sum()
     expanding_apply_f_result = all_data.expanding(min_periods=min_periods).apply(
         func=f, raw=True
@@ -17,7 +32,7 @@ def test_expanding_apply_consistency_sum_nans(all_data, min_periods, f):
 @pytest.mark.parametrize("ddof", [0, 1])
 def test_moments_consistency_var(all_data, min_periods, ddof):
     var_x = all_data.expanding(min_periods=min_periods).var(ddof=ddof)
-    assert not (var_x < 0).any(axis=None)
+    assert not (var_x < 0).any().any()
 
     if ddof == 0:
         # check that biased var(x) == mean(x^2) - mean(x)^2
@@ -32,7 +47,7 @@ def test_moments_consistency_var_constant(consistent_data, min_periods, ddof):
     var_x = consistent_data.expanding(min_periods=min_periods).var(ddof=ddof)
 
     # check that variance of constant series is identically 0
-    assert not (var_x > 0).any(axis=None)
+    assert not (var_x > 0).any().any()
     expected = consistent_data * np.nan
     expected[count_x >= max(min_periods, 1)] = 0.0
     if ddof == 1:
@@ -43,16 +58,16 @@ def test_moments_consistency_var_constant(consistent_data, min_periods, ddof):
 @pytest.mark.parametrize("ddof", [0, 1])
 def test_expanding_consistency_var_std_cov(all_data, min_periods, ddof):
     var_x = all_data.expanding(min_periods=min_periods).var(ddof=ddof)
-    assert not (var_x < 0).any(axis=None)
+    assert not (var_x < 0).any().any()
 
     std_x = all_data.expanding(min_periods=min_periods).std(ddof=ddof)
-    assert not (std_x < 0).any(axis=None)
+    assert not (std_x < 0).any().any()
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
 
     cov_x_x = all_data.expanding(min_periods=min_periods).cov(all_data, ddof=ddof)
-    assert not (cov_x_x < 0).any(axis=None)
+    assert not (cov_x_x < 0).any().any()
 
     # check that var(x) == cov(x, x)
     tm.assert_equal(var_x, cov_x_x)
@@ -105,7 +120,7 @@ def test_expanding_consistency_constant(consistent_data, min_periods):
 
     exp = (
         consistent_data.max()
-        if isinstance(consistent_data, pd.Series)
+        if isinstance(consistent_data, Series)
         else consistent_data.max().max()
     )
 

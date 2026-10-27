@@ -6,6 +6,19 @@ import pytest
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
+from pandas import (
+    Categorical,
+    Index,
+    Interval,
+    IntervalIndex,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import (
     BooleanArray,
@@ -16,19 +29,19 @@ from pandas.tests.arithmetic.common import get_upcast_box
 
 @pytest.fixture(
     params=[
-        (pd.Index([0, 2, 4, 4]), pd.Index([1, 3, 5, 8])),
-        (pd.Index([0.0, 1.0, 2.0, np.nan]), pd.Index([1.0, 2.0, 3.0, np.nan])),
+        (Index([0, 2, 4, 4]), Index([1, 3, 5, 8])),
+        (Index([0.0, 1.0, 2.0, np.nan]), Index([1.0, 2.0, 3.0, np.nan])),
         (
-            pd.timedelta_range("0 days", periods=3).insert(3, pd.NaT),
-            pd.timedelta_range("1 day", periods=3).insert(3, pd.NaT),
+            timedelta_range("0 days", periods=3).insert(3, pd.NaT),
+            timedelta_range("1 day", periods=3).insert(3, pd.NaT),
         ),
         (
-            pd.date_range("20170101", periods=3).insert(3, pd.NaT),
-            pd.date_range("20170102", periods=3).insert(3, pd.NaT),
+            date_range("20170101", periods=3).insert(3, pd.NaT),
+            date_range("20170102", periods=3).insert(3, pd.NaT),
         ),
         (
-            pd.date_range("20170101", periods=3, tz="US/Eastern").insert(3, pd.NaT),
-            pd.date_range("20170102", periods=3, tz="US/Eastern").insert(3, pd.NaT),
+            date_range("20170101", periods=3, tz="US/Eastern").insert(3, pd.NaT),
+            date_range("20170102", periods=3, tz="US/Eastern").insert(3, pd.NaT),
         ),
     ],
     ids=lambda x: str(x[0].dtype),
@@ -50,15 +63,15 @@ def interval_array(left_right_dtypes):
 
 
 def create_categorical_intervals(left, right, closed="right"):
-    return pd.Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
+    return Categorical(IntervalIndex.from_arrays(left, right, closed))
 
 
 def create_series_intervals(left, right, closed="right"):
-    return pd.Series(IntervalArray.from_arrays(left, right, closed))
+    return Series(IntervalArray.from_arrays(left, right, closed))
 
 
 def create_series_categorical_intervals(left, right, closed="right"):
-    return pd.Series(pd.Categorical(pd.IntervalIndex.from_arrays(left, right, closed)))
+    return Series(Categorical(IntervalIndex.from_arrays(left, right, closed)))
 
 
 class TestComparison:
@@ -69,7 +82,7 @@ class TestComparison:
     @pytest.fixture(
         params=[
             IntervalArray.from_arrays,
-            pd.IntervalIndex.from_arrays,
+            IntervalIndex.from_arrays,
             create_categorical_intervals,
             create_series_intervals,
             create_series_categorical_intervals,
@@ -94,44 +107,31 @@ class TestComparison:
         Helper that performs elementwise comparisons between `array` and `other`
         """
         other = other if is_list_like(other) else [other] * len(interval_array)
-        expected = np.array(
-            [op(x, y) for x, y in zip(interval_array, other, strict=True)]
-        )
-        if isinstance(other, pd.Series):
-            return pd.Series(expected, index=other.index)
+        expected = np.array([op(x, y) for x, y in zip(interval_array, other)])
+        if isinstance(other, Series):
+            return Series(expected, index=other.index)
         return expected
 
-    def test_compare_scalar_interval(self, op, interval_array, box_with_array):
-        obj = tm.box_expected(interval_array, box_with_array)
-
+    def test_compare_scalar_interval(self, op, interval_array):
         # matches first interval
         other = interval_array[0]
-        xbox = get_upcast_box(obj, other, is_cmp=True)
-        result = op(obj, other)
+        result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # matches on a single endpoint but not both
-        other = pd.Interval(interval_array.left[0], interval_array.right[1])
-        result = op(obj, other)
+        other = Interval(interval_array.left[0], interval_array.right[1])
+        result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_interval_mixed_closed(
-        self, op, closed, other_closed, box_with_array
-    ):
+    def test_compare_scalar_interval_mixed_closed(self, op, closed, other_closed):
         interval_array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
-        other = pd.Interval(0, 1, closed=other_closed)
+        other = Interval(0, 1, closed=other_closed)
 
-        obj = tm.box_expected(interval_array, box_with_array)
-        xbox = get_upcast_box(obj, other, is_cmp=True)
-
-        result = op(obj, other)
+        result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_scalar_na(self, op, interval_array, nulls_fixture, box_with_array):
         box = box_with_array
@@ -145,7 +145,7 @@ class TestComparison:
         else:
             expected = self.elementwise_comparison(op, interval_array, nulls_fixture)
 
-        if not (box is pd.Index and nulls_fixture is pd.NA):
+        if not (box is Index and nulls_fixture is pd.NA):
             # don't cast expected from BooleanArray to ndarray[object]
             xbox = get_upcast_box(obj, nulls_fixture, True)
             expected = tm.box_expected(expected, xbox)
@@ -162,20 +162,16 @@ class TestComparison:
             1.0,
             True,
             "foo",
-            pd.Timestamp("2017-01-01"),
-            pd.Timestamp("2017-01-01", tz="US/Eastern"),
-            pd.Timedelta("0 days"),
-            pd.Period("2017-01-01", "D"),
+            Timestamp("2017-01-01"),
+            Timestamp("2017-01-01", tz="US/Eastern"),
+            Timedelta("0 days"),
+            Period("2017-01-01", "D"),
         ],
     )
-    def test_compare_scalar_other(self, op, interval_array, other, box_with_array):
-        obj = tm.box_expected(interval_array, box_with_array)
-        xbox = get_upcast_box(obj, other, is_cmp=True)
-
-        result = op(obj, other)
+    def test_compare_scalar_other(self, op, interval_array, other):
+        result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_list_like_interval(self, op, interval_array, interval_constructor):
         # same endpoints
@@ -211,19 +207,19 @@ class TestComparison:
     @pytest.mark.parametrize(
         "other",
         [
-            [
-                pd.Interval(0, 1),
-                pd.Interval(pd.Timedelta("1 day"), pd.Timedelta("2 days")),
-                pd.Interval(4, 5, "both"),
-                pd.Interval(10, 20, "neither"),
-            ],
-            [0, 1.5, pd.Timestamp("20170103"), np.nan],
-            [
-                pd.Timestamp("20170102", tz="US/Eastern"),
-                pd.Timedelta("2 days"),
+            (
+                Interval(0, 1),
+                Interval(Timedelta("1 day"), Timedelta("2 days")),
+                Interval(4, 5, "both"),
+                Interval(10, 20, "neither"),
+            ),
+            (0, 1.5, Timestamp("20170103"), np.nan),
+            (
+                Timestamp("20170102", tz="US/Eastern"),
+                Timedelta("2 days"),
                 "baz",
                 pd.NaT,
-            ],
+            ),
         ],
     )
     def test_compare_list_like_object(self, op, interval_array, other):
@@ -243,12 +239,12 @@ class TestComparison:
         [
             np.arange(4, dtype="int64"),
             np.arange(4, dtype="float64"),
-            pd.date_range("2017-01-01", periods=4),
-            pd.date_range("2017-01-01", periods=4, tz="US/Eastern"),
-            pd.timedelta_range("0 days", periods=4),
-            pd.period_range("2017-01-01", periods=4, freq="D"),
-            pd.Categorical(list("abab")),
-            pd.Categorical(pd.date_range("2017-01-01", periods=4)),
+            date_range("2017-01-01", periods=4),
+            date_range("2017-01-01", periods=4, tz="US/Eastern"),
+            timedelta_range("0 days", periods=4),
+            period_range("2017-01-01", periods=4, freq="D"),
+            Categorical(list("abab")),
+            Categorical(date_range("2017-01-01", periods=4)),
             pd.array(list("abcd")),
             pd.array(["foo", 3.14, None, object()], dtype=object),
         ],
@@ -263,36 +259,48 @@ class TestComparison:
     @pytest.mark.parametrize("other_constructor", [IntervalArray, list])
     def test_compare_length_mismatch_errors(self, op, other_constructor, length):
         interval_array = IntervalArray.from_arrays(range(4), range(1, 5))
-        other = other_constructor([pd.Interval(0, 1)] * length)
+        other = other_constructor([Interval(0, 1)] * length)
         with pytest.raises(ValueError, match="Lengths must match to compare"):
             op(interval_array, other)
 
-    @pytest.mark.parametrize("box", [pd.IntervalIndex, pd.Series])
-    def test_compare_list_like_boxed_lhs(self, op, box):
-        # Ensure IntervalIndex/Series correctly delegate list-like
-        # comparisons to IntervalArray
+    @pytest.mark.parametrize(
+        "constructor, expected_type, assert_func",
+        [
+            (IntervalIndex, np.array, tm.assert_numpy_array_equal),
+            (Series, Series, tm.assert_series_equal),
+        ],
+    )
+    def test_index_series_compat(self, op, constructor, expected_type, assert_func):
+        # IntervalIndex/Series that rely on IntervalArray for comparisons
         breaks = range(4)
-        obj = box(pd.IntervalIndex.from_breaks(breaks))
-        xbox = pd.Series if box is pd.Series else np.array
+        index = constructor(IntervalIndex.from_breaks(breaks))
 
+        # scalar comparisons
+        other = index[0]
+        result = op(index, other)
+        expected = expected_type(self.elementwise_comparison(op, index, other))
+        assert_func(result, expected)
+
+        other = breaks[0]
+        result = op(index, other)
+        expected = expected_type(self.elementwise_comparison(op, index, other))
+        assert_func(result, expected)
+
+        # list-like comparisons
         other = IntervalArray.from_breaks(breaks)
-        result = op(obj, other)
-        expected = xbox(self.elementwise_comparison(op, obj, other))
-        tm.assert_equal(result, expected)
+        result = op(index, other)
+        expected = expected_type(self.elementwise_comparison(op, index, other))
+        assert_func(result, expected)
 
-        other = [obj[0], breaks[0], "foo"]
-        result = op(obj, other)
-        expected = xbox(self.elementwise_comparison(op, obj, other))
-        tm.assert_equal(result, expected)
+        other = [index[0], breaks[0], "foo"]
+        result = op(index, other)
+        expected = expected_type(self.elementwise_comparison(op, index, other))
+        assert_func(result, expected)
 
     @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
-    def test_comparison_operations(self, op, scalars, box_with_array):
-        # GH#28981
-        ser = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
-        obj = tm.box_expected(ser, box_with_array)
-        xbox = get_upcast_box(obj, scalars, is_cmp=True)
-
-        result = op(obj, scalars)
-        expected = np.array([op is operator.ne] * 2)
-        expected = tm.box_expected(expected, xbox)
-        tm.assert_equal(result, expected)
+    def test_comparison_operations(self, scalars):
+        # GH #28981
+        expected = Series([False, False])
+        s = Series([Interval(0, 1), Interval(1, 2)], dtype="interval")
+        result = s == scalars
+        tm.assert_series_equal(result, expected)

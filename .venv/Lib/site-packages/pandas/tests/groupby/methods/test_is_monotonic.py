@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -30,10 +34,10 @@ def test_is_monotonic_increasing(in_vals, out_vals):
         "B": ["a", "a", "a", "b", "b", "b", "c", "c", "c", "d", "d"],
         "C": in_vals,
     }
-    df = pd.DataFrame(source_dict)
+    df = DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_increasing
-    index = pd.Index(list("abcd"), name="B")
-    expected = pd.Series(index=index, data=out_vals, name="C")
+    index = Index(list("abcd"), name="B")
+    expected = Series(index=index, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)
 
     # Also check result equal to manually taking x.is_monotonic_increasing.
@@ -67,8 +71,8 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
         "C": in_vals,
     }
 
-    df = pd.DataFrame(source_dict)
+    df = DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_decreasing
-    index = pd.Index(list("abcd"), name="B")
-    expected = pd.Series(index=index, data=out_vals, name="C")
+    index = Index(list("abcd"), name="B")
+    expected = Series(index=index, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)

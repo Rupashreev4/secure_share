@@ -1,4 +1,8 @@
-import pandas as pd
+from pandas import (
+    Categorical,
+    Index,
+    Series,
+)
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -10,9 +14,9 @@ def get_array(obj, col=None):
     which triggers tracking references / CoW (and we might be testing that
     this is done by some other operation).
     """
-    if isinstance(obj, pd.Index):
+    if isinstance(obj, Index):
         arr = obj._values
-    elif isinstance(obj, pd.Series) and (col is None or obj.name == col):
+    elif isinstance(obj, Series) and (col is None or obj.name == col):
         arr = obj._values
     else:
         assert col is not None
@@ -21,6 +25,6 @@ def get_array(obj, col=None):
         arr = obj._get_column_array(icol)
     if isinstance(arr, BaseMaskedArray):
         return arr._data
-    elif isinstance(arr, pd.Categorical):
+    elif isinstance(arr, Categorical):
         return arr
     return getattr(arr, "_ndarray", arr)

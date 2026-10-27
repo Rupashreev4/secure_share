@@ -2,6 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -31,7 +35,7 @@ def vals(n):
         np.random.default_rng(2).choice(list("ZYXWVUTSRQ"), n),
         np.random.default_rng(2).standard_normal(n),
     ]
-    vals = list(map(tuple, zip(*vals, strict=True)))
+    vals = list(map(tuple, zip(*vals)))
     return vals
 
 
@@ -46,7 +50,7 @@ def keys(n, m, vals):
         ),
         np.random.default_rng(2).choice(list("ZYXWVUTSRQP"), m),
     ]
-    keys = list(map(tuple, zip(*keys, strict=True)))
+    keys = list(map(tuple, zip(*keys)))
     keys += [t[:-1] for t in vals[:: n // m]]
     return keys
 
@@ -54,7 +58,7 @@ def keys(n, m, vals):
 # covers both unique index and non-unique index
 @pytest.fixture
 def df(vals, cols):
-    return pd.DataFrame(vals, columns=cols)
+    return DataFrame(vals, columns=cols)
 
 
 @pytest.fixture
@@ -67,7 +71,6 @@ def b(df, cols):
     return df.drop_duplicates(subset=cols[:-1])
 
 
-@pytest.mark.slow
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("lexsort_depth", list(range(5)))
 @pytest.mark.parametrize("frame_fixture", ["a", "b"])
@@ -97,14 +100,17 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
             right = df[mask].copy(deep=False)
 
             if i + 1 != len(key):  # partial key
-                right = right.drop(cols[: i + 1], axis=1)
-                right = right.set_index(cols[i + 1 : -1])
+                return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
+                assert return_value is None
+                return_value = right.set_index(cols[i + 1 : -1], inplace=True)
+                assert return_value is None
                 tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
             else:  # full key
-                right = right.set_index(cols[:-1])
+                return_value = right.set_index(cols[:-1], inplace=True)
+                assert return_value is None
                 if len(right) == 1:  # single hit
-                    right = pd.Series(
+                    right = Series(
                         right["jolia"].values, name=right.index[0], index=["jolia"]
                     )
                     tm.assert_series_equal(mi.loc[key[: i + 1]], right)

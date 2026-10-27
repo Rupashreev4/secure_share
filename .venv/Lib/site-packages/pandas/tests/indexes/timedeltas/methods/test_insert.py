@@ -6,64 +6,65 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
+from pandas import (
+    Index,
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
 class TestTimedeltaIndexInsert:
     def test_insert(self):
-        idx = pd.TimedeltaIndex(["4day", "1day", "2day"], name="idx")
+        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
         result = idx.insert(2, timedelta(days=5))
-        exp = pd.TimedeltaIndex(["4day", "1day", "5day", "2day"], name="idx")
+        exp = TimedeltaIndex(["4day", "1day", "5day", "2day"], name="idx")
         tm.assert_index_equal(result, exp)
 
         # insertion of non-datetime should coerce to object index
         result = idx.insert(1, "inserted")
-        expected = pd.Index(
-            [
-                pd.Timedelta("4day"),
-                "inserted",
-                pd.Timedelta("1day"),
-                pd.Timedelta("2day"),
-            ],
+        expected = Index(
+            [Timedelta("4day"), "inserted", Timedelta("1day"), Timedelta("2day")],
             name="idx",
         )
-        assert not isinstance(result, pd.TimedeltaIndex)
+        assert not isinstance(result, TimedeltaIndex)
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        idx = pd.timedelta_range("1day 00:00:01", periods=3, freq="s", name="idx")
+        idx = timedelta_range("1day 00:00:01", periods=3, freq="s", name="idx")
 
         # preserve freq
-        expected_0 = pd.TimedeltaIndex(
+        expected_0 = TimedeltaIndex(
             ["1day", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
             name="idx",
             freq="s",
         )
-        expected_3 = pd.TimedeltaIndex(
+        expected_3 = TimedeltaIndex(
             ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:04"],
             name="idx",
             freq="s",
         )
 
         # reset freq to None
-        expected_1_nofreq = pd.TimedeltaIndex(
+        expected_1_nofreq = TimedeltaIndex(
             ["1day 00:00:01", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
             name="idx",
             freq=None,
         )
-        expected_3_nofreq = pd.TimedeltaIndex(
+        expected_3_nofreq = TimedeltaIndex(
             ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:05"],
             name="idx",
             freq=None,
         )
 
         cases = [
-            (0, pd.Timedelta("1day"), expected_0),
-            (-3, pd.Timedelta("1day"), expected_0),
-            (3, pd.Timedelta("1day 00:00:04"), expected_3),
-            (1, pd.Timedelta("1day 00:00:01"), expected_1_nofreq),
-            (3, pd.Timedelta("1day 00:00:05"), expected_3_nofreq),
+            (0, Timedelta("1day"), expected_0),
+            (-3, Timedelta("1day"), expected_0),
+            (3, Timedelta("1day 00:00:04"), expected_3),
+            (1, Timedelta("1day 00:00:01"), expected_1_nofreq),
+            (3, Timedelta("1day 00:00:05"), expected_3_nofreq),
         ]
 
         for n, d, expected in cases:
@@ -73,26 +74,26 @@ class TestTimedeltaIndexInsert:
             assert result.freq == expected.freq
 
     @pytest.mark.parametrize(
-        "null", [None, np.nan, np.timedelta64("NaT", "ns"), pd.NaT, pd.NA]
+        "null", [None, np.nan, np.timedelta64("NaT"), pd.NaT, pd.NA]
     )
     def test_insert_nat(self, null):
         # GH 18295 (test missing)
-        idx = pd.timedelta_range("1day", "3day")
+        idx = timedelta_range("1day", "3day")
         result = idx.insert(1, null)
-        expected = pd.TimedeltaIndex(["1day", pd.NaT, "2day", "3day"])
+        expected = TimedeltaIndex(["1day", pd.NaT, "2day", "3day"])
         tm.assert_index_equal(result, expected)
 
     def test_insert_invalid_na(self):
-        idx = pd.TimedeltaIndex(["4day", "1day", "2day"], name="idx")
+        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
-        item = np.datetime64("NaT", "ns")
+        item = np.datetime64("NaT")
         result = idx.insert(0, item)
 
-        expected = pd.Index([item, *list(idx)], dtype=object, name="idx")
+        expected = Index([item] + list(idx), dtype=object, name="idx")
         tm.assert_index_equal(result, expected)
 
         # Also works if we pass a different dt64nat object
-        item2 = np.datetime64("NaT", "ns")
+        item2 = np.datetime64("NaT")
         result = idx.insert(0, item2)
         tm.assert_index_equal(result, expected)
 
@@ -101,37 +102,37 @@ class TestTimedeltaIndexInsert:
     )
     def test_insert_mismatched_types_raises(self, item):
         # GH#33703 dont cast these to td64
-        tdi = pd.TimedeltaIndex(["4day", "1day", "2day"], name="idx")
+        tdi = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
         result = tdi.insert(1, item)
 
-        expected = pd.Index(
-            [tdi[0], lib.item_from_zerodim(item), *list(tdi[1:])],
+        expected = Index(
+            [tdi[0], lib.item_from_zerodim(item)] + list(tdi[1:]),
             dtype=object,
             name="idx",
         )
         tm.assert_index_equal(result, expected)
 
     def test_insert_castable_str(self):
-        idx = pd.timedelta_range("1day", "3day")
+        idx = timedelta_range("1day", "3day")
 
         result = idx.insert(0, "1 Day")
 
-        expected = pd.TimedeltaIndex([idx[0], *list(idx)])
+        expected = TimedeltaIndex([idx[0]] + list(idx))
         tm.assert_index_equal(result, expected)
 
     def test_insert_non_castable_str(self):
-        idx = pd.timedelta_range("1day", "3day")
+        idx = timedelta_range("1day", "3day")
 
         result = idx.insert(0, "foo")
 
-        expected = pd.Index(["foo", *list(idx)], dtype=object)
+        expected = Index(["foo"] + list(idx), dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_insert_empty(self):
         # Corner case inserting with length zero doesn't raise IndexError
         # GH#33573 for freq preservation
-        idx = pd.timedelta_range("1 Day", periods=3)
+        idx = timedelta_range("1 Day", periods=3)
         td = idx[0]
 
         result = idx[:0].insert(0, td)

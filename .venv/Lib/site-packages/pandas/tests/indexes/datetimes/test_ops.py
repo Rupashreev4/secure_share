@@ -2,17 +2,20 @@ from datetime import datetime
 
 import pytest
 
-import pandas as pd
+from pandas import (
+    DatetimeIndex,
+    Index,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestDatetimeIndexOps:
     def test_infer_freq(self, freq_sample):
         # GH 11018
-        idx = pd.date_range(
-            "2011-01-01 09:00:00", freq=freq_sample, periods=10, unit="ns"
-        )
-        result = pd.DatetimeIndex(idx.asi8, freq="infer")
+        idx = date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
+        result = DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
@@ -22,7 +25,7 @@ class TestBusinessDatetimeIndex:
     @pytest.fixture
     def rng(self, freq):
         START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
-        return pd.bdate_range(START, END, freq=freq)
+        return bdate_range(START, END, freq=freq)
 
     def test_comparison(self, rng):
         d = rng[10]
@@ -48,6 +51,6 @@ class TestBusinessDatetimeIndex:
         assert t1.identical(t2)
 
         # freq
-        t2v = pd.Index(t2.values)
+        t2v = Index(t2.values)
         assert t1.equals(t2v)
         assert not t1.identical(t2v)

@@ -1,18 +1,21 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    Index,
+    IntervalIndex,
+    Timestamp,
+    interval_range,
+)
 import pandas._testing as tm
 
 
 def monotonic_index(start, end, dtype="int64", closed="right"):
-    return pd.IntervalIndex.from_breaks(
-        np.arange(start, end, dtype=dtype), closed=closed
-    )
+    return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype), closed=closed)
 
 
 def empty_index(dtype="int64", closed="right"):
-    return pd.IntervalIndex(np.array([], dtype=dtype), closed=closed)
+    return IntervalIndex(np.array([], dtype=dtype), closed=closed)
 
 
 class TestIntervalIndex:
@@ -78,23 +81,23 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.intersection(index, sort=sort), index)
 
         # GH 26225: nested intervals
-        index = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (1, 4), (0, 2)])
-        other = pd.IntervalIndex.from_tuples([(1, 2), (1, 3)])
-        expected = pd.IntervalIndex.from_tuples([(1, 2), (1, 3)])
+        index = IntervalIndex.from_tuples([(1, 2), (1, 3), (1, 4), (0, 2)])
+        other = IntervalIndex.from_tuples([(1, 2), (1, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (1, 3)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
         # GH 26225
-        index = pd.IntervalIndex.from_tuples([(0, 3), (0, 2)])
-        other = pd.IntervalIndex.from_tuples([(0, 2), (1, 3)])
-        expected = pd.IntervalIndex.from_tuples([(0, 2)])
+        index = IntervalIndex.from_tuples([(0, 3), (0, 2)])
+        other = IntervalIndex.from_tuples([(0, 2), (1, 3)])
+        expected = IntervalIndex.from_tuples([(0, 2)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
         # GH 26225: duplicate nan element
-        index = pd.IntervalIndex([np.nan, np.nan])
-        other = pd.IntervalIndex([np.nan])
-        expected = pd.IntervalIndex([np.nan])
+        index = IntervalIndex([np.nan, np.nan])
+        other = IntervalIndex([np.nan])
+        expected = IntervalIndex([np.nan])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
@@ -119,14 +122,14 @@ class TestIntervalIndex:
 
     def test_intersection_duplicates(self):
         # GH#38743
-        index = pd.IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
-        other = pd.IntervalIndex.from_tuples([(1, 2), (2, 3)])
-        expected = pd.IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
+        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (2, 3)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
     def test_difference(self, closed, sort):
-        index = pd.IntervalIndex.from_arrays([1, 0, 3, 2], [1, 2, 3, 4], closed=closed)
+        index = IntervalIndex.from_arrays([1, 0, 3, 2], [1, 2, 3, 4], closed=closed)
         result = index.difference(index[:1], sort=sort)
         expected = index[1:]
         if sort is None:
@@ -139,7 +142,7 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
-        other = pd.IntervalIndex.from_arrays(
+        other = IntervalIndex.from_arrays(
             index.left.astype("float64"), index.right, closed=closed
         )
         result = index.difference(other, sort=sort)
@@ -148,7 +151,7 @@ class TestIntervalIndex:
     def test_symmetric_difference(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
         result = index[1:].symmetric_difference(index[:-1], sort=sort)
-        expected = pd.IntervalIndex([index[0], index[-1]])
+        expected = IntervalIndex([index[0], index[-1]])
         if sort in (None, True):
             tm.assert_index_equal(result, expected)
         else:
@@ -163,7 +166,7 @@ class TestIntervalIndex:
             tm.assert_index_equal(result.sort_values(), expected)
 
         # GH 19101: empty result, different dtypes
-        other = pd.IntervalIndex.from_arrays(
+        other = IntervalIndex.from_arrays(
             index.left.astype("float64"), index.right, closed=closed
         )
         result = index.symmetric_difference(other, sort=sort)
@@ -183,8 +186,8 @@ class TestIntervalIndex:
         if op_name == "difference":
             expected = index
         else:
-            expected = getattr(index.astype("O"), op_name)(pd.Index([1, 2, 3]))
-        result = set_op(pd.Index([1, 2, 3]), sort=sort)
+            expected = getattr(index.astype("O"), op_name)(Index([1, 2, 3]))
+        result = set_op(Index([1, 2, 3]), sort=sort)
         tm.assert_index_equal(result, expected)
 
         # mixed closed -> cast to object
@@ -197,7 +200,7 @@ class TestIntervalIndex:
             tm.assert_index_equal(result, expected)
 
         # GH 19016: incompatible dtypes -> cast to object
-        other = pd.interval_range(pd.Timestamp("20180101"), periods=9, closed=closed)
+        other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
         expected = getattr(index.astype(object), op_name)(other, sort=sort)
         if op_name == "difference":
             expected = index

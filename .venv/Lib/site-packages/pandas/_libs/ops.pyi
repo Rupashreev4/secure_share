@@ -1,10 +1,7 @@
-from collections.abc import (
-    Callable,
-    Hashable,
-    Iterable,
-)
 from typing import (
     Any,
+    Callable,
+    Iterable,
     Literal,
     TypeAlias,
     overload,
@@ -40,15 +37,15 @@ def vec_binop(
 @overload
 def maybe_convert_bool(
     arr: npt.NDArray[np.object_],
-    true_values: Iterable[Hashable] | None = None,
-    false_values: Iterable[Hashable] | None = None,
+    true_values: Iterable | None = None,
+    false_values: Iterable | None = None,
     convert_to_masked_nullable: Literal[False] = ...,
 ) -> tuple[np.ndarray, None]: ...
 @overload
 def maybe_convert_bool(
     arr: npt.NDArray[np.object_],
-    true_values: Iterable[Hashable] = ...,
-    false_values: Iterable[Hashable] = ...,
+    true_values: Iterable = ...,
+    false_values: Iterable = ...,
     *,
     convert_to_masked_nullable: Literal[True],
 ) -> tuple[np.ndarray, np.ndarray]: ...

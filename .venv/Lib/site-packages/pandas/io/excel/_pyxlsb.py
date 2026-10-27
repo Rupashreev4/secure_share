@@ -1,23 +1,17 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
-import warnings
+from typing import TYPE_CHECKING
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import Pandas4Warning
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import doc
+
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
-    from pyxlsb import (
-        Workbook,
-        Worksheet,
-    )
+    from pyxlsb import Workbook
 
     from pandas._typing import (
         FilePath,
@@ -28,11 +22,12 @@ if TYPE_CHECKING:
 
 
 class PyxlsbReader(BaseExcelReader["Workbook"]):
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict[str, Any] | None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Reader using pyxlsb engine.
@@ -41,25 +36,11 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-            are forwarded to ``urllib.request.Request`` as header options. For other
-            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?
-            highlight=storage_options#reading-writing-remote-files>`_.
+        {storage_options}
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("pyxlsb")
-        warnings.warn(
-            "The pyxlsb engine is deprecated and will be removed in a future version. "
-            "Use the calamine engine instead, by setting engine='calamine'.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
         super().__init__(
@@ -75,9 +56,7 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         return Workbook
 
     def load_workbook(
-        self,
-        filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        engine_kwargs: dict[str, Any],
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
     ) -> Workbook:
         from pyxlsb import open_workbook
 
@@ -91,17 +70,17 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
     def sheet_names(self) -> list[str]:
         return self.book.sheets
 
-    def get_sheet_by_name(self, name: str) -> Worksheet:
+    def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)
         return self.book.get_sheet(name)
 
-    def get_sheet_by_index(self, index: int) -> Worksheet:
+    def get_sheet_by_index(self, index: int):
         self.raise_if_bad_sheet_by_index(index)
         # pyxlsb sheets are indexed from 1 onwards
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)
 
-    def _convert_cell(self, cell: Any) -> Scalar:
+    def _convert_cell(self, cell) -> Scalar:
         # TODO: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
         if cell.v is None:
@@ -117,7 +96,7 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
 
     def get_sheet_data(
         self,
-        sheet: Worksheet,
+        sheet,
         file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []

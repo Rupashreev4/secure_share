@@ -6,7 +6,7 @@ import pytest
 import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
-import pandas as pd
+from pandas import Series
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     BlockIndex,
@@ -209,10 +209,12 @@ class TestSparseIndexIntersect:
     @pytest.mark.parametrize(
         "case",
         [
-            IntIndex(5, np.array([1, 2], dtype=np.int32)),
-            IntIndex(5, np.array([0, 2, 4], dtype=np.int32)),
-            IntIndex(0, np.array([], dtype=np.int32)),
-            IntIndex(5, np.array([], dtype=np.int32)),
+            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
+            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
+            IntIndex(5, np.array([1, 2], dtype=np.int32)),  # type: ignore[arg-type]
+            IntIndex(5, np.array([0, 2, 4], dtype=np.int32)),  # type: ignore[arg-type]
+            IntIndex(0, np.array([], dtype=np.int32)),  # type: ignore[arg-type]
+            IntIndex(5, np.array([], dtype=np.int32)),  # type: ignore[arg-type]
         ],
     )
     def test_intersect_identical(self, case):
@@ -536,10 +538,10 @@ class TestSparseOperators:
         assert bfill == ifill
 
         # check versus Series...
-        xseries = pd.Series(x, xdindex.indices)
+        xseries = Series(x, xdindex.indices)
         xseries = xseries.reindex(np.arange(test_length)).fillna(xfill)
 
-        yseries = pd.Series(y, ydindex.indices)
+        yseries = Series(y, ydindex.indices)
         yseries = yseries.reindex(np.arange(test_length)).fillna(yfill)
 
         series_result = python_op(xseries, yseries)

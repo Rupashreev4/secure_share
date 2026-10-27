@@ -3,9 +3,6 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -24,9 +21,7 @@ class TestConvertDtypes:
             }
         )
         with pd.option_context("string_storage", string_storage):
-            msg = "keyword in DataFrame.convert_dtypes is deprecated"
-            with tm.assert_produces_warning(Pandas4Warning, match=msg):
-                result = df.convert_dtypes(True, True, convert_integer, False)
+            result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=expected),
@@ -40,19 +35,6 @@ class TestConvertDtypes:
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
 
-    @td.skip_if_no("pyarrow")
-    def test_convert_empty_categorical_to_pyarrow(self):
-        # GH#59934
-        df = pd.DataFrame(
-            {
-                "A": pd.Categorical([None] * 5),
-                "B": pd.Categorical([None] * 5, categories=["B1", "B2"]),
-            }
-        )
-        converted = df.convert_dtypes(dtype_backend="pyarrow")
-        expected = df
-        tm.assert_frame_equal(converted, expected)
-
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -62,7 +44,7 @@ class TestConvertDtypes:
         tm.assert_index_equal(result.columns, df.columns)
         assert result.columns.name == "cols"
 
-    def test_pyarrow_dtype_backend(self, using_nan_is_na):
+    def test_pyarrow_dtype_backend(self):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
@@ -70,14 +52,12 @@ class TestConvertDtypes:
                 "b": pd.Series(["x", "y", None], dtype=np.dtype("O")),
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
-                "e": pd.Series(pd.date_range("2022", periods=3, unit="ns")),
+                "e": pd.Series(pd.date_range("2022", periods=3)),
                 "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
                 "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
-
-        item = None if using_nan_is_na else np.nan
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -85,7 +65,7 @@ class TestConvertDtypes:
                 ),
                 "b": pd.arrays.ArrowExtensionArray(pa.array(["x", "y", None])),
                 "c": pd.arrays.ArrowExtensionArray(pa.array([True, False, None])),
-                "d": pd.arrays.ArrowExtensionArray(pa.array([item, 100.5, 200.0])),
+                "d": pd.arrays.ArrowExtensionArray(pa.array([None, 100.5, 200.0])),
                 "e": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
@@ -113,7 +93,7 @@ class TestConvertDtypes:
                             datetime.timedelta(2),
                             datetime.timedelta(3),
                         ],
-                        type=pa.duration("us"),
+                        type=pa.duration("ns"),
                     )
                 ),
             }
@@ -171,15 +151,13 @@ class TestConvertDtypes:
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
         expected = df.copy()
-        msg = "keyword in DataFrame.convert_dtypes is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = df.convert_dtypes(
-                convert_floating=False,
-                convert_integer=False,
-                convert_boolean=False,
-                convert_string=False,
-                dtype_backend="pyarrow",
-            )
+        result = df.convert_dtypes(
+            convert_floating=False,
+            convert_integer=False,
+            convert_boolean=False,
+            convert_string=False,
+            dtype_backend="pyarrow",
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dtypes_pyarrow_to_np_nullable(self):
@@ -201,14 +179,12 @@ class TestConvertDtypes:
     def test_convert_dtypes_avoid_block_splitting(self):
         # GH#55341
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
-        msg = "The convert_integer keyword in DataFrame.convert_dtypes is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = df.convert_dtypes(convert_integer=False)
+        result = df.convert_dtypes(convert_integer=False)
         expected = pd.DataFrame(
             {
                 "a": [1, 2, 3],
                 "b": [4, 5, 6],
-                "c": pd.Series(["a"] * 3, dtype="string"),
+                "c": pd.Series(["a"] * 3, dtype="string[python]"),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -218,74 +194,5 @@ class TestConvertDtypes:
         # GH#56581
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
         result = df.convert_dtypes()
-        expected = df.astype({"a": "string"})
+        expected = df.astype({"a": "string[python]"})
         tm.assert_frame_equal(result, expected)
-
-    def test_convert_dtype_pyarrow_timezone_preserve(self):
-        # GH 60237
-        pytest.importorskip("pyarrow")
-        df = pd.DataFrame(
-            {
-                "timestamps": pd.Series(
-                    pd.to_datetime(range(5), utc=True, unit="h"),
-                    dtype="timestamp[ns, tz=UTC][pyarrow]",
-                )
-            }
-        )
-        result = df.convert_dtypes(dtype_backend="pyarrow")
-        expected = df.copy()
-        tm.assert_frame_equal(result, expected)
-
-    def test_convert_dtypes_complex(self):
-        # GH 60129
-        df = pd.DataFrame({"a": [1.0 + 5.0j, 1.5 - 3.0j], "b": [1, 2]})
-        expected = pd.DataFrame(
-            {
-                "a": pd.array([1.0 + 5.0j, 1.5 - 3.0j], dtype="complex128"),
-                "b": pd.array([1, 2], dtype="Int64"),
-            }
-        )
-        result = df.convert_dtypes()
-        tm.assert_frame_equal(result, expected)
-
-    def test_convert_dtypes_mixed_column_after_slice(self):
-        # GH#64702
-        df = pd.DataFrame(data=[[1, "a"], [2, "b"], ["c", 3]], columns=["col1", "col2"])
-        df = df.loc[[0, 1]].copy()
-        result = df.convert_dtypes()
-        expected = pd.DataFrame(
-            {
-                "col1": pd.array([1, 2], dtype="Int64"),
-                "col2": pd.array(["a", "b"], dtype="string"),
-            }
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_convert_dtypes_int_out_of_range(self):
-        # GH#66517 only the column that overflows int64/uint64 stays object
-        df = pd.DataFrame({"a": [2**64, 1], "b": [1, 2]}, dtype=object)
-        result = df.convert_dtypes()
-        expected = pd.DataFrame(
-            {
-                "a": pd.Series([2**64, 1], dtype=object),
-                "b": pd.Series([1, 2], dtype="Int64"),
-            }
-        )
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "kwarg",
-        [
-            "infer_objects",
-            "convert_string",
-            "convert_integer",
-            "convert_boolean",
-            "convert_floating",
-        ],
-    )
-    def test_convert_dtypes_deprecated_kwargs(self, kwarg):
-        # GH#62022
-        df = pd.DataFrame({"a": [1, 2, 3]})
-        msg = f"The {kwarg} keyword in DataFrame.convert_dtypes"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            df.convert_dtypes(**{kwarg: True})

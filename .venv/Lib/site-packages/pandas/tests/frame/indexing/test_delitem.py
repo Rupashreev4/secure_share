@@ -3,7 +3,10 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 
 
 class TestDataFrameDelItem:
@@ -12,16 +15,14 @@ class TestDataFrameDelItem:
         assert "A" not in float_frame
 
     def test_delitem_multiindex(self):
-        midx = pd.MultiIndex.from_product([["A", "B"], [1, 2]])
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((4, 4)), columns=midx
-        )
+        midx = MultiIndex.from_product([["A", "B"], [1, 2]])
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), columns=midx)
         assert len(df.columns) == 4
         assert ("A",) in df.columns
         assert "A" in df.columns
 
         result = df["A"]
-        assert isinstance(result, pd.DataFrame)
+        assert isinstance(result, DataFrame)
         del df["A"]
 
         assert len(df.columns) == 2
@@ -51,11 +52,9 @@ class TestDataFrameDelItem:
     def test_delitem_col_still_multiindex(self):
         arrays = [["a", "b", "c", "top"], ["", "", "", "OD"], ["", "", "", "wx"]]
 
-        tuples = sorted(zip(*arrays, strict=True))
-        index = pd.MultiIndex.from_tuples(tuples)
+        tuples = sorted(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples)
 
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((3, 4)), columns=index
-        )
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), columns=index)
         del df[("a", "", "")]
-        assert isinstance(df.columns, pd.MultiIndex)
+        assert isinstance(df.columns, MultiIndex)

@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    PeriodIndex,
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -9,8 +16,8 @@ class TestToPeriod:
     def test_to_period(self, frame_or_series):
         K = 5
 
-        dr = pd.date_range("1/1/2000", "1/1/2001", freq="D")
-        obj = pd.DataFrame(
+        dr = date_range("1/1/2000", "1/1/2001", freq="D")
+        obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(dr), K)),
             index=dr,
             columns=["A", "B", "C", "D", "E"],
@@ -20,7 +27,7 @@ class TestToPeriod:
 
         pts = obj.to_period()
         exp = obj.copy()
-        exp.index = pd.period_range("1/1/2000", "1/1/2001")
+        exp.index = period_range("1/1/2000", "1/1/2001")
         tm.assert_equal(pts, exp)
 
         pts = obj.to_period("M")
@@ -29,12 +36,12 @@ class TestToPeriod:
 
     def test_to_period_without_freq(self, frame_or_series):
         # GH#7606 without freq
-        idx = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"])
-        exp_idx = pd.PeriodIndex(
+        idx = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"])
+        exp_idx = PeriodIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], freq="D"
         )
 
-        obj = pd.DataFrame(
+        obj = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)), index=idx, columns=idx
         )
         obj = tm.get_obj(obj, frame_or_series)
@@ -42,32 +49,28 @@ class TestToPeriod:
         expected.index = exp_idx
         tm.assert_equal(obj.to_period(), expected)
 
-        if frame_or_series is pd.DataFrame:
+        if frame_or_series is DataFrame:
             expected = obj.copy()
             expected.columns = exp_idx
             tm.assert_frame_equal(obj.to_period(axis=1), expected)
 
     def test_to_period_columns(self):
-        dr = pd.date_range("1/1/2000", "1/1/2001")
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr
-        )
+        dr = date_range("1/1/2000", "1/1/2001")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr)
         df["mix"] = "a"
 
         df = df.T
         pts = df.to_period(axis=1)
         exp = df.copy()
-        exp.columns = pd.period_range("1/1/2000", "1/1/2001")
+        exp.columns = period_range("1/1/2000", "1/1/2001")
         tm.assert_frame_equal(pts, exp)
 
         pts = df.to_period("M", axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq("M"))
 
     def test_to_period_invalid_axis(self):
-        dr = pd.date_range("1/1/2000", "1/1/2001")
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr
-        )
+        dr = date_range("1/1/2000", "1/1/2001")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr)
         df["mix"] = "a"
 
         msg = "No axis named 2 for object type DataFrame"
@@ -76,11 +79,11 @@ class TestToPeriod:
 
     def test_to_period_raises(self, index, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/33327
-        obj = pd.Series(index=index, dtype=object)
-        if frame_or_series is pd.DataFrame:
+        obj = Series(index=index, dtype=object)
+        if frame_or_series is DataFrame:
             obj = obj.to_frame()
 
-        if not isinstance(index, pd.DatetimeIndex):
+        if not isinstance(index, DatetimeIndex):
             msg = f"unsupported Type {type(index).__name__}"
             with pytest.raises(TypeError, match=msg):
                 obj.to_period()

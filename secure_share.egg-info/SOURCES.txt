@@ -9,6 +9,8 @@ app/crypto/file_crypto.py
 app/crypto/keystore.py
 app/crypto/keywrap.py
 app/crypto/signing.py
+app/gui/__init__.py
+app/gui/streamlit_app.py
 app/storage/__init__.py
 app/storage/storage.py
 secure_share.egg-info/PKG-INFO

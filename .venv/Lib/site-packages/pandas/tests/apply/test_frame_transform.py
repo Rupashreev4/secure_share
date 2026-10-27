@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
-
-import pandas as pd
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.apply.common import frame_transform_kernels
 from pandas.tests.frame.common import zip_frames
@@ -14,7 +16,7 @@ def unpack_obj(obj, klass, axis):
     Helper to ensure we have the right type of object for a test parametrized
     over frame_or_series.
     """
-    if klass is not pd.DataFrame:
+    if klass is not DataFrame:
         obj = obj["A"]
         if axis != 0:
             pytest.skip(f"Test is only for DataFrame with axis={axis}")
@@ -49,9 +51,9 @@ def test_transform_listlike(axis, float_frame, ops, names):
     with np.errstate(all="ignore"):
         expected = zip_frames([op(float_frame) for op in ops], axis=other_axis)
     if axis in {0, "index"}:
-        expected.columns = pd.MultiIndex.from_product([float_frame.columns, names])
+        expected.columns = MultiIndex.from_product([float_frame.columns, names])
     else:
-        expected.index = pd.MultiIndex.from_product([float_frame.index, names])
+        expected.index = MultiIndex.from_product([float_frame.index, names])
     result = float_frame.transform(ops, axis=axis)
     tm.assert_frame_equal(result, expected)
 
@@ -66,7 +68,7 @@ def test_transform_empty_listlike(float_frame, ops, frame_or_series):
 
 def test_transform_listlike_func_with_args():
     # GH 50624
-    df = pd.DataFrame({"x": [1, 2, 3]})
+    df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
         return x + a + c
@@ -79,14 +81,14 @@ def test_transform_listlike_func_with_args():
         df.transform([foo1, foo2], 0, 3, b=3, c=4)
 
     result = df.transform([foo1, foo2], 0, 3, c=4)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]],
-        columns=pd.MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
     )
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", [dict, pd.Series])
+@pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(axis, float_frame, box):
     # GH 35964
     if axis in (0, "index"):
@@ -101,11 +103,11 @@ def test_transform_dictlike(axis, float_frame, box):
 
 def test_transform_dictlike_mixed():
     # GH 40018 - mix of lists and non-lists in values of a dictionary
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 4], "c": [1, 4]})
+    df = DataFrame({"a": [1, 2], "b": [1, 4], "c": [1, 4]})
     result = df.transform({"b": ["sqrt", "abs"], "c": "sqrt"})
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[1.0, 1, 1.0], [2.0, 4, 2.0]],
-        columns=pd.MultiIndex([("b", "c"), ("sqrt", "abs")], [(0, 0, 1), (0, 1, 0)]),
+        columns=MultiIndex([("b", "c"), ("sqrt", "abs")], [(0, 0, 1), (0, 1, 0)]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -158,9 +160,7 @@ def test_transform_bad_dtype(op, frame_or_series, request):
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 
-    obj = pd.DataFrame(
-        {"A": 3 * [object]}
-    )  # DataFrame that will fail on most transforms
+    obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
     error = TypeError
     msg = "|".join(
@@ -190,7 +190,7 @@ def test_transform_failure_typeerror(request, op):
         )
 
     # Using object makes most transform kernels fail
-    df = pd.DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
+    df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
     error = TypeError
     msg = "|".join(
         [
@@ -219,7 +219,7 @@ def test_transform_failure_valueerror():
             raise ValueError
         return x
 
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
+    df = DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
     msg = "Transform function failed"
 
     with pytest.raises(ValueError, match=msg):
@@ -256,17 +256,9 @@ def test_transform_passes_args(use_apply, frame_or_series):
 
 def test_transform_empty_dataframe():
     # https://github.com/pandas-dev/pandas/issues/39636
-    df = pd.DataFrame([], columns=["col1", "col2"])
+    df = DataFrame([], columns=["col1", "col2"])
     result = df.transform(lambda x: x + 10)
     tm.assert_frame_equal(result, df)
 
     result = df["col1"].transform(lambda x: x + 10)
     tm.assert_series_equal(result, df["col1"])
-
-
-def test_transform_dup_func_name_raises(frame_or_series):
-    # GH#54929 - duplicate function names should raise SpecificationError
-    obj = frame_or_series([0.0, 1.0, 4.0])
-    msg = "Function names must be unique if there is no new column names assigned"
-    with pytest.raises(SpecificationError, match=msg):
-        obj.transform(["sqrt", "sqrt"])

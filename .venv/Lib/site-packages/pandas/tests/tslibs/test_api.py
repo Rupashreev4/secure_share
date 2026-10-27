@@ -29,7 +29,6 @@ def test_namespace():
         "NaTType",
         "iNaT",
         "nat_strings",
-        "Day",
         "OutOfBoundsDatetime",
         "OutOfBoundsTimedelta",
         "Period",
@@ -57,7 +56,6 @@ def test_namespace():
         "periods_per_second",
         "guess_datetime_format",
         "add_overflowsafe",
-        "mul_overflowsafe",
         "get_supported_dtype",
         "is_supported_dtype",
     ]

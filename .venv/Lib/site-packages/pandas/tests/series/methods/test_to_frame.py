@@ -1,4 +1,10 @@
-import pandas as pd
+import pytest
+
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -7,44 +13,47 @@ class TestToFrame:
         # GH#44212 if we explicitly pass name=None, then that should be respected,
         #  not changed to 0
         # GH-45448 this is first deprecated & enforced in 2.0
-        ser = pd.Series(range(3))
+        ser = Series(range(3))
         result = ser.to_frame(None)
 
-        exp_index = pd.Index([None], dtype=object)
+        exp_index = Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
         result = ser.rename("foo").to_frame(None)
-        exp_index = pd.Index([None], dtype=object)
+        exp_index = Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
     def test_to_frame(self, datetime_series):
         datetime_series.name = None
         rs = datetime_series.to_frame()
-        xp = pd.DataFrame(datetime_series.values, index=datetime_series.index)
+        xp = DataFrame(datetime_series.values, index=datetime_series.index)
         tm.assert_frame_equal(rs, xp)
 
         datetime_series.name = "testname"
         rs = datetime_series.to_frame()
-        xp = pd.DataFrame(
+        xp = DataFrame(
             {"testname": datetime_series.values}, index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
 
         rs = datetime_series.to_frame(name="testdifferent")
-        xp = pd.DataFrame(
+        xp = DataFrame(
             {"testdifferent": datetime_series.values}, index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+    )
     def test_to_frame_expanddim(self):
         # GH#9762
 
-        class SubclassedSeries(pd.Series):
+        class SubclassedSeries(Series):
             @property
             def _constructor_expanddim(self):
                 return SubclassedFrame
 
-        class SubclassedFrame(pd.DataFrame):
+        class SubclassedFrame(DataFrame):
             pass
 
         ser = SubclassedSeries([1, 2, 3], name="X")

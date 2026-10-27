@@ -1,23 +1,23 @@
 from pandas.core.window.ewm import (
     ExponentialMovingWindow,
-    ExponentialMovingWindowGroupBy,
+    ExponentialMovingWindowGroupby,
 )
 from pandas.core.window.expanding import (
     Expanding,
-    ExpandingGroupBy,
+    ExpandingGroupby,
 )
 from pandas.core.window.rolling import (
     Rolling,
-    RollingGroupBy,
+    RollingGroupby,
     Window,
 )
 
 __all__ = [
     "Expanding",
-    "ExpandingGroupBy",
+    "ExpandingGroupby",
     "ExponentialMovingWindow",
-    "ExponentialMovingWindowGroupBy",
+    "ExponentialMovingWindowGroupby",
     "Rolling",
-    "RollingGroupBy",
+    "RollingGroupby",
     "Window",
 ]

@@ -5,7 +5,7 @@ from pandas.util._decorators import deprecate_kwarg
 import pandas._testing as tm
 
 
-@deprecate_kwarg(FutureWarning, "old", new_arg_name="new")
+@deprecate_kwarg("old", "new")
 def _f1(new=False):
     return new
 
@@ -13,7 +13,7 @@ def _f1(new=False):
 _f2_mappings = {"yes": True, "no": False}
 
 
-@deprecate_kwarg(FutureWarning, "old", new_arg_name="new", mapping=_f2_mappings)
+@deprecate_kwarg("old", "new", _f2_mappings)
 def _f2(new=False):
     return new
 
@@ -22,7 +22,7 @@ def _f3_mapping(x):
     return x + 1
 
 
-@deprecate_kwarg(FutureWarning, "old", new_arg_name="new", mapping=_f3_mapping)
+@deprecate_kwarg("old", "new", _f3_mapping)
 def _f3(new=0):
     return new
 
@@ -31,34 +31,30 @@ def _f3(new=0):
 def test_deprecate_kwarg(key, klass):
     x = 78
 
-    msg = "the 'old' keyword is deprecated, use 'new' instead"
-    with tm.assert_produces_warning(klass, match=msg):
+    with tm.assert_produces_warning(klass):
         assert _f1(**{key: x}) == x
 
 
 @pytest.mark.parametrize("key", list(_f2_mappings.keys()))
 def test_dict_deprecate_kwarg(key):
-    msg = f"the old={key!r} keyword is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning):
         assert _f2(old=key) == _f2_mappings[key]
 
 
 @pytest.mark.parametrize("key", ["bogus", 12345, -1.23])
 def test_missing_deprecate_kwarg(key):
-    msg = f"the old={key!r} keyword is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning):
         assert _f2(old=key) == key
 
 
 @pytest.mark.parametrize("x", [1, -1.4, 0])
 def test_callable_deprecate_kwarg(x):
-    msg = f"the old={x!r} keyword is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning):
         assert _f3(old=x) == _f3_mapping(x)
 
 
 def test_callable_deprecate_kwarg_fail():
-    msg = "|".join(["(can only|cannot) concatenate", "must be str", "Can't convert"])
+    msg = "((can only|cannot) concatenate)|(must be str)|(Can't convert)"
 
     with pytest.raises(TypeError, match=msg):
         _f3(old="hello")
@@ -69,12 +65,12 @@ def test_bad_deprecate_kwarg():
 
     with pytest.raises(TypeError, match=msg):
 
-        @deprecate_kwarg(FutureWarning, "old", "new", 0)
+        @deprecate_kwarg("old", "new", 0)
         def f4(new=None):
             return new
 
 
-@deprecate_kwarg(FutureWarning, "old", new_arg_name=None)
+@deprecate_kwarg("old", None)
 def _f4(old=True, unchanged=True):
     return old, unchanged
 
@@ -90,6 +86,5 @@ def test_deprecate_keyword(key):
         klass = None
         expected = (True, x)
 
-    msg = "the 'old' keyword is deprecated and will be removed in a future version"
-    with tm.assert_produces_warning(klass, match=msg):
+    with tm.assert_produces_warning(klass):
         assert _f4(**{key: x}) == expected

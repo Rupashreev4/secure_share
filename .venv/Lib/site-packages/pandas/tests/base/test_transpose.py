@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+)
 import pandas._testing as tm
 
 
@@ -32,22 +35,22 @@ def test_numpy_transpose(index_or_series_obj):
     "data, transposed_data, index, columns, dtype",
     [
         ([[1], [2]], [[1, 2]], ["a", "a"], ["b"], int),
-        ([[1], [2]], [[1, 2]], ["a", "a"], ["b"], pd.CategoricalDtype([1, 2])),
+        ([[1], [2]], [[1, 2]], ["a", "a"], ["b"], CategoricalDtype([1, 2])),
         ([[1, 2]], [[1], [2]], ["b"], ["a", "a"], int),
-        ([[1, 2]], [[1], [2]], ["b"], ["a", "a"], pd.CategoricalDtype([1, 2])),
+        ([[1, 2]], [[1], [2]], ["b"], ["a", "a"], CategoricalDtype([1, 2])),
         ([[1, 2], [3, 4]], [[1, 3], [2, 4]], ["a", "a"], ["b", "b"], int),
         (
             [[1, 2], [3, 4]],
             [[1, 3], [2, 4]],
             ["a", "a"],
             ["b", "b"],
-            pd.CategoricalDtype([1, 2, 3, 4]),
+            CategoricalDtype([1, 2, 3, 4]),
         ),
     ],
 )
 def test_duplicate_labels(data, transposed_data, index, columns, dtype):
     # GH 42380
-    df = pd.DataFrame(data, index=index, columns=columns, dtype=dtype)
+    df = DataFrame(data, index=index, columns=columns, dtype=dtype)
     result = df.T
-    expected = pd.DataFrame(transposed_data, index=columns, columns=index, dtype=dtype)
+    expected = DataFrame(transposed_data, index=columns, columns=index, dtype=dtype)
     tm.assert_frame_equal(result, expected)

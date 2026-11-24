@@ -1,0 +1,26 @@
+# --- Secrets: never commit these ---
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# --- Runtime data (keystores, encrypted blobs, demo evidence) ---
+data/
+evidence/
+*.tmp
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

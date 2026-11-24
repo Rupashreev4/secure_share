@@ -1,0 +1,13 @@
+cryptography>=42
+eth-account>=0.11
+eth-utils>=3
+eth-abi>=4
+web3==8.0.0
+py-solc-x>=2.0.5
+python-dotenv>=1.0
+# GUI: 1.66.x shows a blank page with this app, so keep this pin
+streamlit==1.40.2
+# Testing (local blockchain, no ETH needed)
+pytest>=8
+eth-tester>=0.14.0b1
+py-evm>=0.12.1b1
